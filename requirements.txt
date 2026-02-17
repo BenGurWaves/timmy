@@ -1,9 +1,10 @@
-ollama
+fastapi
+uvicorn
+python-multipart
 chromadb
-playwright
+ollama
 beautifulsoup4
-requests
-youtube-transcript-api
-sentence-transformers
 playwright
 youtube-transcript-api
+websockets
+python-dotenv

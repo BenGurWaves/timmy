@@ -1,38 +1,67 @@
+"""
+shell.py
+
+This tool allows the Timmy AI agent to execute arbitrary shell commands on the macOS system.
+It uses Python's `subprocess` module to run commands and capture their output.
+"""
+
 import subprocess
-import logging
-from .base import BaseTool
-from config import config
+from typing import Dict, Any
+from tools.base import Tool
 
-logger = logging.getLogger(__name__)
+class ShellTool(Tool):
+    """
+    A tool for executing shell commands.
+    """
 
-class ShellTool(BaseTool):
     def __init__(self):
         super().__init__(
-            name="shell",
-            description="Execute shell commands. Use with caution, especially for destructive commands."
+            name="Shell Executor",
+            description="Executes any terminal command via subprocess. Use with caution."
         )
 
-    def execute(self, command: str, confirm: bool = config.CONFIRM_DESTRUCTIVE_ACTIONS) -> str:
-        if any(dangerous_cmd in command for dangerous_cmd in config.COMMAND_BLACKLIST):
-            return f"Error: Command '{command}' is blacklisted for safety reasons."
+    def execute(self, command: str, confirm_destructive: bool = True) -> Dict[str, Any]:
+        """
+        Executes a given shell command.
 
-        if confirm:
-            # In a real terminal, this would be an interactive prompt.
-            # For now, we'll assume confirmation is handled by the agent's higher-level logic or user.
-            logger.warning(f"Shell command '{command}' requires confirmation. Assuming confirmed for now.")
+        Args:
+            command (str): The shell command to execute.
+            confirm_destructive (bool): If True, prompts for confirmation for potentially destructive commands.
+                                        Currently, this is a placeholder for future implementation.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the command, stdout, stderr, and return code.
+        """
+        print(f"Executing shell command: {command}")
+
+        # Basic check for destructive commands (can be expanded)
+        destructive_commands = ["rm -rf", "format", "mkfs"]
+        if confirm_destructive and any(dc in command for dc in destructive_commands):
+            # In a real interactive system, this would prompt the user.
+            # For now, we'll just log a warning.
+            print(f"WARNING: Potentially destructive command detected: {command}")
+            print("Please implement a user confirmation mechanism for such commands.")
+            # For automated execution, we'll proceed, but this is where a human would intervene.
 
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
-            if result.stdout:
-                logger.info(f"Shell command output: {result.stdout.strip()}")
-                return result.stdout.strip()
-            if result.stderr:
-                logger.warning(f"Shell command error output: {result.stderr.strip()}")
-                return f"Error: {result.stderr.strip()}"
-            return "Command executed successfully with no output."
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Shell command failed: {e.stderr.strip()}")
-            return f"Command failed with error: {e.stderr.strip()}"
+            process = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True, # Decode stdout/stderr as text
+                check=False # Do not raise an exception for non-zero exit codes
+            )
+            return {
+                "command": command,
+                "stdout": process.stdout.strip(),
+                "stderr": process.stderr.strip(),
+                "returncode": process.returncode
+            }
         except Exception as e:
-            logger.error(f"An unexpected error occurred during shell command execution: {e}")
-            return f"An unexpected error occurred: {e}"
+            return {
+                "command": command,
+                "stdout": "",
+                "stderr": str(e),
+                "returncode": 1
+            }
+

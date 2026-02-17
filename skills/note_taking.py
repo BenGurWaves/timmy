@@ -1,24 +1,50 @@
-from .base import BaseSkill
-from ..tools.filesystem import FileSystemTool
+"""
+note_taking.py
+
+This skill allows the Timmy AI agent to take and retrieve notes, leveraging the memory system.
+"""
+
+from typing import Any, Dict
+from skills.base import Skill
+from memory import Memory # Assuming Memory class is accessible
 import datetime
-import os
-import logging
 
-logger = logging.getLogger(__name__)
+class NoteTakingSkill(Skill):
+    """
+    A skill for taking and retrieving notes.
+    """
 
-class NoteTakingSkill(BaseSkill):
     def __init__(self):
         super().__init__(
-            name="note_taking",
-            description="Takes notes and saves them to a timestamped file in the data/knowledge directory."
+            name="Note Taking",
+            description="Allows taking and retrieving notes, storing them in long-term memory."
         )
-        self.filesystem_tool = FileSystemTool()
-        self.notes_dir = "./data/knowledge/notes"
-        self.filesystem_tool.execute("create_dir", self.notes_dir, confirm=False) # Ensure notes directory exists
+        self.memory = Memory()
 
-    def execute(self, note_content: str) -> str:
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(self.notes_dir, f"note_{timestamp}.txt")
-        
-        logger.info(f"Saving note to {filename}")
-        return self.filesystem_tool.execute("write", filename, note_content, confirm=False)
+    def execute(self, operation: str, content: str = "", query: str = "") -> Dict[str, Any]:
+        """
+        Executes a note-taking operation.
+
+        Args:
+            operation (str): The type of note operation ("take" or "retrieve").
+            content (str): The content of the note to take (for "take" operation).
+            query (str): The query to retrieve notes (for "retrieve" operation).
+
+        Returns:
+            Dict[str, Any]: The result of the note-taking operation.
+        """
+        print(f"Executing Note Taking Skill for operation: {operation}")
+        if operation == "take":
+            if not content:
+                return {"status": "error", "message": "Note content cannot be empty."}
+            timestamp = datetime.datetime.now().isoformat()
+            metadata = {"type": "note", "timestamp": timestamp}
+            self.memory.add_to_memory("long_term_knowledge", content, metadata=metadata)
+            return {"status": "success", "message": "Note taken successfully.", "timestamp": timestamp}
+        elif operation == "retrieve":
+            if not query:
+                return {"status": "error", "message": "Query for note retrieval cannot be empty."}
+            results = self.memory.retrieve_from_memory("long_term_knowledge", query)
+            return {"status": "success", "query": query, "notes": results}
+        else:
+            return {"status": "error", "message": f"Unknown note operation: {operation}"}

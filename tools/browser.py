@@ -1,101 +1,134 @@
-import logging
-import asyncio
-from playwright.async_api import async_playwright
-from .base import BaseTool
-from config import config
+"""
+browser.py
 
-logger = logging.getLogger(__name__)
+This tool provides Playwright automation capabilities for the Timmy AI agent.
+It allows opening URLs, searching, extracting content, filling forms, and clicking elements.
+"""
 
-class BrowserTool(BaseTool):
+from playwright.sync_api import sync_playwright, Page, BrowserContext
+from typing import Dict, Any, Optional
+from tools.base import Tool
+
+class BrowserTool(Tool):
+    """
+    A tool for automating web browser interactions using Playwright.
+    """
+
     def __init__(self):
         super().__init__(
-            name="browser",
-            description="Automate browser actions: open URLs, search, extract content, fill forms, click buttons."
+            name="Browser Automation",
+            description="Automates web browser interactions: open URLs, search, extract content, fill forms, click."
         )
-        self.browser = None
-        self.page = None
+        self._playwright = None
+        self._browser = None
+        self._context: Optional[BrowserContext] = None
+        self._page: Optional[Page] = None
 
-    async def _initialize_browser(self):
-        if not self.browser:
-            self.playwright_instance = await async_playwright().start()
-            self.browser = await self.playwright_instance.chromium.launch(headless=config.PLAYWRIGHT_HEADLESS)
-            self.page = await self.browser.new_page()
-            logger.info("Playwright browser initialized.")
+    def _initialize_browser(self):
+        """
+        Initializes Playwright and launches a browser.
+        """
+        if not self._playwright:
+            self._playwright = sync_playwright().start()
+            # Using 'chromium' as it's generally well-supported in headless environments
+            self._browser = self._playwright.chromium.launch(headless=True)
+            self._context = self._browser.new_context()
+            self._page = self._context.new_page()
+            print("Playwright browser initialized.")
 
-    async def _close_browser(self):
-        if self.browser:
-            await self.browser.close()
-            await self.playwright_instance.stop()
-            self.browser = None
-            self.page = None
-            logger.info("Playwright browser closed.")
+    def _close_browser(self):
+        """
+        Closes the browser and Playwright instance.
+        """
+        if self._browser:
+            self._browser.close()
+            self._browser = None
+            self._context = None
+            self._page = None
+        if self._playwright:
+            self._playwright.stop()
+            self._playwright = None
+        print("Playwright browser closed.")
 
-    async def execute(self, operation: str, url: str = None, selector: str = None, value: str = None, text_to_find: str = None) -> str:
-        await self._initialize_browser()
-
+    def open_page(self, url: str) -> Dict[str, Any]:
+        """
+        Opens a new page in the browser and navigates to the given URL.
+        """
+        self._initialize_browser()
         try:
-            if operation == "goto":
-                return await self._goto(url)
-            elif operation == "get_content":
-                return await self._get_content()
-            elif operation == "fill":
-                return await self._fill(selector, value)
-            elif operation == "click":
-                return await self._click(selector)
-            elif operation == "search_page":
-                return await self._search_page(text_to_find)
-            else:
-                return f"Error: Unknown browser operation: {operation}"
+            self._page.goto(url)
+            return {"status": "success", "url": url, "title": self._page.title()}
         except Exception as e:
-            logger.error(f"Browser operation failed: {e}")
-            return f"Error during browser operation: {e}"
+            return {"status": "error", "message": str(e)}
+
+    def get_page_content(self) -> Dict[str, Any]:
+        """
+        Returns the full HTML content of the current page.
+        """
+        if not self._page:
+            return {"status": "error", "message": "No page is open. Use open_page first."}
+        try:
+            content = self._page.content()
+            return {"status": "success", "content": content}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def search_and_extract(self, selector: str) -> Dict[str, Any]:
+        """
+        Searches for elements matching a CSS selector and extracts their text content.
+        """
+        if not self._page:
+            return {"status": "error", "message": "No page is open. Use open_page first."}
+        try:
+            elements = self._page.query_selector_all(selector)
+            texts = [el.inner_text() for el in elements]
+            return {"status": "success", "selector": selector, "texts": texts}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def fill_form_field(self, selector: str, value: str) -> Dict[str, Any]:
+        """
+        Fills a form field identified by a CSS selector with the given value.
+        """
+        if not self._page:
+            return {"status": "error", "message": "No page is open. Use open_page first."}
+        try:
+            self._page.fill(selector, value)
+            return {"status": "success", "selector": selector, "value": value, "message": "Field filled."}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def click_element(self, selector: str) -> Dict[str, Any]:
+        """
+        Clicks an element identified by a CSS selector.
+        """
+        if not self._page:
+            return {"status": "error", "message": "No page is open. Use open_page first."}
+        try:
+            self._page.click(selector)
+            return {"status": "success", "selector": selector, "message": "Element clicked."}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def execute(self, operation: str, **kwargs) -> Dict[str, Any]:
+        """
+        Executes a browser automation operation.
+        """
+        try:
+            if operation == "open_page":
+                return self.open_page(kwargs.get("url"))
+            elif operation == "get_content":
+                return self.get_page_content()
+            elif operation == "search_extract":
+                return self.search_and_extract(kwargs.get("selector"))
+            elif operation == "fill_field":
+                return self.fill_form_field(kwargs.get("selector"), kwargs.get("value"))
+            elif operation == "click":
+                return self.click_element(kwargs.get("selector"))
+            else:
+                return {"status": "error", "message": f"Unknown browser operation: {operation}"}
         finally:
-            # Consider keeping the browser open for subsequent operations or closing it based on agent's state
-            pass # await self._close_browser() # Close only when explicitly done or agent exits
+            # Consider keeping the browser open for a session or closing after each operation
+            # For now, we'll close it to free up resources.
+            self._close_browser()
 
-    async def _goto(self, url: str) -> str:
-        await self.page.goto(url)
-        logger.info(f"Navigated to URL: {url}")
-        return f"Successfully navigated to {url}"
-
-    async def _get_content(self) -> str:
-        content = await self.page.content()
-        logger.info("Extracted page content.")
-        return content
-
-    async def _fill(self, selector: str, value: str) -> str:
-        await self.page.fill(selector, value)
-        logger.info(f"Filled \'{value}\' into selector \'{selector}\'")
-        return f"Successfully filled \'{value}\' into \'{selector}\'"
-
-    async def _click(self, selector: str) -> str:
-        await self.page.click(selector)
-        logger.info(f"Clicked on selector: {selector}")
-        return f"Successfully clicked on \'{selector}\'"
-
-    async def _search_page(self, text_to_find: str) -> str:
-        content = await self.page.content()
-        if text_to_find in content:
-            logger.info(f"Found \'{text_to_find}\' on the page.")
-            return f"Found \'{text_to_find}\' on the current page."
-        else:
-            logger.info(f"Did not find \'{text_to_find}\' on the page.")
-            return f"Did not find \'{text_to_find}\' on the current page."
-
-# Helper function to run async methods from sync context
-def run_async(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(coro)
-
-# Example of how the tool would be used (for testing purposes)
-# if __name__ == "__main__":
-#     tool = BrowserTool()
-#     print(run_async(tool.execute("goto", url="https://www.google.com")))
-#     print(run_async(tool.execute("fill", selector="textarea[name=\'q\']", value="Playwright Python")))
-#     print(run_async(tool.execute("click", selector="input[name=\'btnK\']")))
-#     print(run_async(tool.execute("search_page", text_to_find="Playwright")))
-#     run_async(tool._close_browser())

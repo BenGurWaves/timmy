@@ -1,107 +1,151 @@
-import logging
-import re
-from brain import Brain
-from memory import Memory
-from tools import ToolManager
-from learning.youtube import YouTubeLearner
-from learning.web_scraper import WebScraper
-from learning.knowledge import KnowledgeProcessor
-from skills import SkillManager
-from config import config
+"""
+agent.py
 
-logger = logging.getLogger(__name__)
+This module defines the core Agent class for Timmy AI. It orchestrates interactions
+between the Brain, Council, Memory, Loop Detector, Tools, and Skills.
+It processes user messages, decides on actions, and manages the agent's state.
+"""
+
+import json
+from typing import Dict, Any, List, Generator
+
+from brain import Brain
+from council import Council
+from memory import Memory
+from loop_detector import LoopDetector
+from tools import ALL_TOOLS, Tool
+from skills import ALL_SKILLS, Skill, CodeWriterSkill
+from learning import YouTubeLearner, WebScraper
 
 class Agent:
-    def __init__(self, model_name: str = config.OLLAMA_MODEL):
-        self.brain = Brain(model_name=model_name)
-        self.memory = Memory(persist_directory=config.CHROMA_PATH)
-        self.tool_manager = ToolManager()
-        self.skill_manager = SkillManager()
-        self.youtube_learner = YouTubeLearner()
-        self.web_scraper = WebScraper()
-        self.knowledge_processor = KnowledgeProcessor(self.memory)
-        self.conversation_history = [] # Short-term memory
+    """
+    The core AI agent, responsible for processing messages, making decisions,
+    and orchestrating various components like Brain, Council, Memory, Tools, and Skills.
+    """
 
-        logger.info("Agent initialized.")
-
-    def handle_message(self, user_message: str) -> str:
-        self.conversation_history.append(("user", user_message))
-        logger.info(f"User message: {user_message}")
-
-        # 1. Retrieve relevant memories
-        relevant_memories = self.memory.retrieve_relevant_memories(user_message)
-        if relevant_memories:
-            logger.info(f"Retrieved relevant memories: {relevant_memories}")
-
-        # 2. Decide action based on prompt, history, tools, and memories
-        # For now, a simple pass-through to the brain. Later, this will involve tool/skill selection.
-        prompt_with_context = self._build_prompt_with_context(user_message, relevant_memories)
-        response = self.brain.get_response(prompt_with_context)
-
-        self.conversation_history.append(("timmy", response))
-        logger.info(f"Timmy response: {response}")
-
-        # 3. Store conversation in episodic memory (simplified for now)
-        self.memory.add_episodic_memory(user_message, response)
-
-        return response
-
-    def stream_response(self, user_message: str):
-        self.conversation_history.append(("user", user_message))
-        logger.info(f"User message (streaming): {user_message}")
-
-        relevant_memories = self.memory.retrieve_relevant_memories(user_message)
-        if relevant_memories:
-            logger.info(f"Retrieved relevant memories (streaming): {relevant_memories}")
-
-        prompt_with_context = self._build_prompt_with_context(user_message, relevant_memories)
+    def __init__(self):
+        self.brain = Brain()
+        self.council = Council(self.brain)
+        self.memory = Memory()
+        self.loop_detector = LoopDetector()
         
-        full_response = ""
-        for chunk in self.brain.stream_response(prompt_with_context):
-            full_response += chunk
-            yield chunk
+        # Initialize tools and skills
+        self.tools: Dict[str, Tool] = {tool.name: tool for tool in ALL_TOOLS}
+        self.skills: Dict[str, Skill] = {skill.name: skill for skill in ALL_SKILLS}
         
-        self.conversation_history.append(("timmy", full_response))
-        logger.info(f"Timmy response (streaming): {full_response}")
-        self.memory.add_episodic_memory(user_message, full_response)
+        # CodeWriterSkill needs a Brain instance
+        self.skills["Code Writer"] = CodeWriterSkill(self.brain)
 
+        # Initialize learning modules
+        self.youtube_learner = YouTubeLearner(self.memory)
+        self.web_scraper = WebScraper(self.memory)
 
-    def _build_prompt_with_context(self, user_message: str, relevant_memories: list) -> str:
-        # This is a simplified prompt building. A more sophisticated system would format this better.
-        prompt = "You are Timmy, a helpful AI assistant.\n\n"
-        if relevant_memories:
-            prompt += "Relevant past information:\n"
-            for mem in relevant_memories:
-                prompt += f"- {mem}\n"
-            prompt += "\n"
+        print("Agent initialized with Brain, Council, Memory, Loop Detector, Tools, Skills, and Learning modules.")
+
+    def _decide_action(self, user_message: str) -> Dict[str, Any]:
+        """
+        Uses the main brain model to decide the next action based on the user message.
+        The decision includes whether to use a tool, a skill, convene the council, or respond directly.
+        """
+        # Placeholder for a more sophisticated decision-making process.
+        # In a real implementation, this would involve a structured prompt to the LLM
+        # to output a JSON object indicating the action.
         
-        prompt += "Conversation history:\n"
-        for speaker, text in self.conversation_history:
-            prompt += f"{speaker.capitalize()}: {text}\n"
-        prompt += f"User: {user_message}\nTimmy:"
-        return prompt
-
-    def learn_from_url(self, url: str) -> str:
-        logger.info(f"Agent initiated learning from URL: {url}")
-        if "youtube.com/watch?v=" in url:
-            video_id = url.split("v=")[1].split("&")[0]
-            content = self.youtube_learner.get_transcript(video_id)
-            source_type = "youtube"
+        # For now, a simple keyword-based decision.
+        if "learn from youtube" in user_message.lower() and "http" in user_message:
+            url = user_message.split("http")[-1].strip()
+            return {"action": "learn_youtube", "url": "http" + url}
+        elif "learn from webpage" in user_message.lower() and "http" in user_message:
+            url = user_message.split("http")[-1].strip()
+            return {"action": "learn_webpage", "url": "http" + url}
+        elif "search" in user_message.lower():
+            query = user_message.lower().replace("search", "").strip()
+            return {"action": "use_skill", "skill_name": "Web Search", "query": query}
+        elif "read file" in user_message.lower():
+            path = user_message.lower().replace("read file", "").strip()
+            return {"action": "use_skill", "skill_name": "File Manager", "operation": "read", "path": path}
+        elif "write file" in user_message.lower():
+            # This would need more sophisticated parsing or a structured tool call from the LLM
+            return {"action": "respond", "response": "To write a file, please specify the path and content clearly."}
+        elif "system info" in user_message.lower():
+            return {"action": "use_skill", "skill_name": "System Information", "info_type": "all"}
+        elif "take note" in user_message.lower():
+            note_content = user_message.lower().replace("take note", "").strip()
+            return {"action": "use_skill", "skill_name": "Note Taking", "operation": "take", "content": note_content}
+        elif "retrieve note" in user_message.lower():
+            query = user_message.lower().replace("retrieve note", "").strip()
+            return {"action": "use_skill", "skill_name": "Note Taking", "operation": "retrieve", "query": query}
+        elif "council" in user_message.lower() or len(user_message.split()) > 20: # Heuristic for complex problems
+            return {"action": "convene_council", "problem": user_message}
         else:
-            content = self.web_scraper.scrape_page(url)
-            source_type = "webpage"
+            return {"action": "respond", "response": None} # Let the brain respond directly
 
-        if content.startswith("Error:"):
-            return content
+    def handle_message(self, user_message: str) -> Generator[Dict[str, Any], None, None]:
+        """
+        Processes a user message, decides on an action, executes it, and yields responses.
+        """
+        self.memory.add_to_memory("conversation_history", f"User: {user_message}")
+        self.loop_detector.record_action("user_message", {"message": user_message})
 
-        self.knowledge_processor.process_and_store(content, source=f"{source_type}-{url}")
-        return f"Successfully learned from {url} and stored knowledge."
+        action_decision = self._decide_action(user_message)
+        action_type = action_decision["action"]
 
-    def list_available_skills(self):
-        return self.skill_manager.list_skills()
+        if self.loop_detector.detect_loop():
+            yield {"type": "status", "text": "Loop detected! Timmy is rethinking its approach..."}
+            # In a real scenario, the agent would use its brain to summarize and brainstorm.
+            yield {"type": "text", "text": "It seems I might be stuck. Let me try a different approach or ask for clarification."}
+            self.loop_detector.reset()
+            # Fallback to direct response or ask for user input
+            yield {"type": "text", "text": self.brain.think(f"I detected a loop while trying to respond to: {user_message}. Please help me rethink or provide more context.")}
+            return
 
-    def execute_skill(self, skill_name: str, *args, **kwargs):
-        return self.skill_manager.execute_skill(skill_name, *args, **kwargs)
+        if action_type == "learn_youtube":
+            yield {"type": "status", "text": "Learning from YouTube..."}
+            result = self.youtube_learner.learn_from_youtube(action_decision["url"])
+            yield {"type": "tool_output", "tool_name": "YouTube Learner", "output": json.dumps(result, indent=2)}
+            yield {"type": "text", "text": f"YouTube learning complete: {result.get("message", "")}"}
+        elif action_type == "learn_webpage":
+            yield {"type": "status", "text": "Learning from Webpage..."}
+            result = self.web_scraper.learn_from_webpage(action_decision["url"])
+            yield {"type": "tool_output", "tool_name": "Web Scraper", "output": json.dumps(result, indent=2)}
+            yield {"type": "text", "text": f"Web page learning complete: {result.get("message", "")}"}
+        elif action_type == "use_skill":
+            skill_name = action_decision["skill_name"]
+            if skill_name in self.skills:
+                yield {"type": "status", "text": f"Using skill: {skill_name}..."}
+                try:
+                    skill_args = {k: v for k, v in action_decision.items() if k not in ["action", "skill_name"]}
+                    result = self.skills[skill_name].execute(**skill_args)
+                    yield {"type": "tool_output", "tool_name": skill_name, "output": json.dumps(result, indent=2)}
+                    yield {"type": "text", "text": f"Skill \'{skill_name}\' executed. Result: {result.get("message", json.dumps(result))}"}
+                except Exception as e:
+                    self.loop_detector.record_error(str(e), {"skill": skill_name, "args": skill_args})
+                    yield {"type": "error", "text": f"Error executing skill {skill_name}: {e}"}
+            else:
+                yield {"type": "error", "text": f"Unknown skill: {skill_name}"}
+        elif action_type == "convene_council":
+            yield {"type": "council_activated"}
+            problem = action_decision["problem"]
+            try:
+                final_answer = self.council.convene(problem)
+                yield {"type": "text", "text": f"Council's synthesized answer: {final_answer}"}
+            except Exception as e:
+                self.loop_detector.record_error(str(e), {"council_problem": problem})
+                yield {"type": "error", "text": f"Error convening council: {e}"}
+        else: # Direct response from brain
+            yield {"type": "status", "text": "Timmy is thinking..."}
+            try:
+                # Retrieve relevant memory for context
+                relevant_memories = self.memory.retrieve_from_memory("semantic_knowledge", user_message, n_results=3)
+                context = "\n".join(relevant_memories) if relevant_memories else ""
+                
+                prompt_with_context = f"""You are Timmy, an AI assistant. Respond to the user's query.
+                \nContext from memory: {context}\nUser: {user_message}"""
+                
+                response = self.brain.think(prompt_with_context)
+                yield {"type": "text", "text": response}
+            except Exception as e:
+                self.loop_detector.record_error(str(e), {"user_message": user_message})
+                yield {"type": "error", "text": f"Error generating response: {e}"}
 
-    def execute_tool(self, tool_name: str, *args, **kwargs):
-        return self.tool_manager.execute_tool(tool_name, *args, **kwargs)
+        self.memory.add_to_memory("conversation_history", f"Timmy: {response}")

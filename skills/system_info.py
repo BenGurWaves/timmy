@@ -1,46 +1,52 @@
-import subprocess
-import logging
-from .base import BaseSkill
+"""
+system_info.py
 
-logger = logging.getLogger(__name__)
+This skill allows the Timmy AI agent to gather system information from the macOS host.
+It uses the ShellTool to execute commands like `uname -a`, `df -h`, `free -h`, etc.
+"""
 
-class SystemInfoSkill(BaseSkill):
+from typing import Any, Dict
+from skills.base import Skill
+from tools.shell import ShellTool
+
+class SystemInfoSkill(Skill):
+    """
+    A skill to gather system information.
+    """
+
     def __init__(self):
         super().__init__(
-            name="system_info",
-            description="Gathers system information (OS, hardware, disk usage) for macOS."
+            name="System Information",
+            description="Gathers and provides information about the operating system and hardware."
         )
+        self.shell_tool = ShellTool()
 
-    def execute(self) -> str:
-        info = []
-        info.append("--- System Information ---")
+    def execute(self, info_type: str = "all") -> Dict[str, Any]:
+        """
+        Executes commands to get system information.
 
-        # OS Version
-        try:
-            os_version = subprocess.check_output(["sw_vers"], text=True).strip()
-            info.append(f"OS Version:\n{os_version}")
-        except Exception as e:
-            logger.warning(f"Could not get OS version: {e}")
-            info.append(f"OS Version: N/A ({e})")
+        Args:
+            info_type (str): The type of information to retrieve (e.g., "all", "os", "disk", "memory").
 
-        # Hardware Info (simplified)
-        try:
-            hardware_info = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string", "hw.memsize"], text=True).strip().split("\n")
-            info.append(f"CPU: {hardware_info[0]}")
-            mem_bytes = int(hardware_info[1])
-            mem_gb = round(mem_bytes / (1024**3), 2)
-            info.append(f"Memory: {mem_gb} GB")
-        except Exception as e:
-            logger.warning(f"Could not get hardware info: {e}")
-            info.append(f"Hardware Info: N/A ({e})")
+        Returns:
+            Dict[str, Any]: The gathered system information.
+        """
+        print(f"Executing System Info Skill for type: {info_type}")
+        results = {}
 
-        # Disk Usage
-        try:
-            disk_usage = subprocess.check_output(["df", "-h", "/"], text=True).strip()
-            info.append(f"Disk Usage (root):\n{disk_usage}")
-        except Exception as e:
-            logger.warning(f"Could not get disk usage: {e}")
-            info.append(f"Disk Usage: N/A ({e})")
+        if info_type == "all" or info_type == "os":
+            uname_output = self.shell_tool.execute(command="uname -a")
+            results["os_info"] = uname_output["stdout"]
 
-        logger.info("System information gathered.")
-        return "\n".join(info)
+        if info_type == "all" or info_type == "disk":
+            disk_output = self.shell_tool.execute(command="df -h")
+            results["disk_usage"] = disk_output["stdout"]
+
+        if info_type == "all" or info_type == "memory":
+            memory_output = self.shell_tool.execute(command="free -h")
+            results["memory_usage"] = memory_output["stdout"]
+
+        if not results:
+            return {"status": "error", "message": f"Unknown info type or no information found for: {info_type}"}
+
+        return {"status": "success", "info_type": info_type, "data": results}

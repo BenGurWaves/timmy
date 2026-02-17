@@ -1,17 +1,34 @@
-from ..tools.web_search import WebSearchTool
-from .base import BaseSkill
-import logging
+"""
+web_search.py
 
-logger = logging.getLogger(__name__)
+This skill allows the Timmy AI agent to perform web searches using the WebSearchTool.
+"""
 
-class WebSearchSkill(BaseSkill):
+from typing import Any, Dict
+from skills.base import Skill
+from tools.web_search import WebSearchTool
+
+class WebSearchSkill(Skill):
+    """
+    A skill to perform web searches.
+    """
+
     def __init__(self):
         super().__init__(
-            name="web_search",
-            description="Performs a web search using the integrated web search tool."
+            name="Web Search",
+            description="Performs a web search using DuckDuckGo and returns the results."
         )
         self.web_search_tool = WebSearchTool()
 
-    def execute(self, query: str) -> str:
-        logger.info(f"Executing web_search skill for query: {query}")
-        return self.web_search_tool.execute(query)
+    def execute(self, query: str) -> Dict[str, Any]:
+        """
+        Executes a web search with the given query.
+
+        Args:
+            query (str): The search query.
+
+        Returns:
+            Dict[str, Any]: The search results.
+        """
+        print(f"Executing Web Search Skill for query: {query}")
+        return self.web_search_tool.execute(query=query)

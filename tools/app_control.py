@@ -1,36 +1,94 @@
+"""
+app_control.py
+
+This tool provides functionalities for the Timmy AI agent to control macOS applications
+using `osascript` (AppleScript).
+"""
+
 import subprocess
-import logging
-from .base import BaseTool
+from typing import Dict, Any
+from tools.base import Tool
 
-logger = logging.getLogger(__name__)
+class AppControlTool(Tool):
+    """
+    A tool for controlling macOS applications via AppleScript.
+    Note: This tool is designed for macOS and will not function on other operating systems.
+    """
 
-class AppControlTool(BaseTool):
     def __init__(self):
         super().__init__(
-            name="app_control",
-            description="Open, close, and control Mac applications using AppleScript/osascript."
+            name="Application Control (macOS)",
+            description="Opens, closes, and interacts with Mac applications via osascript/AppleScript."
         )
 
-    def execute(self, operation: str, app_name: str) -> str:
-        script = ""
-        if operation == "open":
-            script = f'tell application "{app_name}" to activate'
-        elif operation == "close":
-            script = f'tell application "{app_name}" to quit'
-        elif operation == "is_running":
-            script = f'tell application "System Events" to (name of processes) contains "{app_name}"'
-        else:
-            return f"Error: Unknown app control operation: {operation}"
-
+    def _run_applescript(self, script: str) -> Dict[str, Any]:
+        """
+        Executes an AppleScript command using osascript.
+        """
         try:
-            cmd = ["osascript", "-e", script]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            output = result.stdout.strip()
-            logger.info(f"App control operation \'{operation}\' on \'{app_name}\' successful. Output: {output}")
-            return f"Successfully performed \'{operation}\' on \'{app_name}\\' with result: {output}"
+            # This sandbox is Linux, so osascript will not work.
+            # We'll simulate a response for demonstration.
+            if self._is_macos():
+                process = subprocess.run(
+                    ["osascript", "-e", script],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                return {"status": "success", "script": script, "stdout": process.stdout.strip(), "stderr": process.stderr.strip()}
+            else:
+                return {"status": "warning", "message": "AppControlTool is for macOS only. Cannot execute AppleScript on this OS.", "script": script}
         except subprocess.CalledProcessError as e:
-            logger.error(f"App control operation \'{operation}\' on \'{app_name}\' failed: {e.stderr.strip()}")
-            return f"Error performing \'{operation}\' on \'{app_name}\\' : {e.stderr.strip()}"
+            return {"status": "error", "script": script, "stdout": e.stdout.strip(), "stderr": e.stderr.strip(), "message": str(e)}
+        except FileNotFoundError:
+            return {"status": "error", "message": "osascript command not found. This tool requires macOS.", "script": script}
         except Exception as e:
-            logger.error(f"An unexpected error occurred during app control: {e}")
-            return f"An unexpected error occurred: {e}"
+            return {"status": "error", "message": str(e), "script": script}
+
+    def _is_macos(self) -> bool:
+        """
+        Checks if the current operating system is macOS.
+        """
+        import platform
+        return platform.system() == "Darwin"
+
+    def open_app(self, app_name: str) -> Dict[str, Any]:
+        """
+        Opens a specified application.
+        """
+        script = f'tell application "{app_name}" to activate'
+        print(f"Attempting to open app: {app_name}")
+        return self._run_applescript(script)
+
+    def close_app(self, app_name: str) -> Dict[str, Any]:
+        """
+        Closes a specified application.
+        """
+        script = f'tell application "{app_name}" to quit'
+        print(f"Attempting to close app: {app_name}")
+        return self._run_applescript(script)
+
+    def send_keystrokes(self, app_name: str, keystrokes: str) -> Dict[str, Any]:
+        """
+        Sends keystrokes to a specified application.
+        """
+        script = f'tell application "{app_name}" to activate\ntell application "System Events" to keystroke "{keystrokes}"'
+        print(f"Attempting to send keystrokes to {app_name}: {keystrokes}")
+        return self._run_applescript(script)
+
+    def execute(self, operation: str, **kwargs) -> Dict[str, Any]:
+        """
+        Executes an application control operation.
+        """
+        if not self._is_macos():
+            return {"status": "error", "message": "AppControlTool is for macOS only. Current OS is not macOS."}
+
+        if operation == "open":
+            return self.open_app(kwargs.get("app_name"))
+        elif operation == "close":
+            return self.close_app(kwargs.get("app_name"))
+        elif operation == "send_keystrokes":
+            return self.send_keystrokes(kwargs.get("app_name"), kwargs.get("keystrokes"))
+        else:
+            return {"status": "error", "message": f"Unknown application control operation: {operation}"}
+

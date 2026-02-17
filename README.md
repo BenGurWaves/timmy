@@ -1,188 +1,183 @@
-# Timmy: Your Local AI Agent
+# Timmy AI Agent
 
-Timmy is a powerful, locally-run AI agent designed to give you full control over your computer. Built with a modular architecture, Timmy integrates with local Large Language Models (LLMs) via Ollama, provides a robust tool system for computer control, manages memory locally with ChromaDB, and includes a learning pipeline to continuously expand its knowledge. All core functionalities are designed to run without cloud dependencies, ensuring privacy and performance.
+Timmy is an advanced AI agent designed to operate with full control over a macOS system, leveraging local Ollama models for intelligent decision-making, code generation, and task automation. It features a web-based chat interface, a sophisticated memory system, a learning pipeline, and a unique "Council" system for complex problem-solving.
 
-## Core Architecture
+## Features
 
-### 1. Brain — Ollama Integration
-- Uses [Ollama](https://ollama.ai/) as the local LLM backend.
-- Supports configurable models (default: `llama3` or `mistral`).
-- Structured prompt system with system prompt, conversation history, and tool results.
-
-### 2. Chat Interface
-- Terminal-based chat interface for immediate interaction.
-- Manages conversation history with context window management.
-- Provides streaming responses from Ollama for a more natural interaction.
-
-### 3. Tool System — Full Computer Control
-Timmy's tool system allows it to interact with your computer environment.
-- **Shell/Terminal**: Execute commands and run scripts.
-- **File System**: Read, write, create, delete, and search files and folders.
-- **Browser Automation**: Utilizes Playwright to open URLs, search the web, extract content, fill forms, and click buttons.
-- **Web Search**: Performs web searches using Google/DuckDuckGo and returns results.
-- **App Control (macOS only)**: Opens/closes Mac applications using AppleScript/osascript.
-- Each tool is implemented as a Python module in the `tools/` directory.
-- **Safety Guardrails**: Includes confirmation prompts for destructive actions (delete, overwrite), rate limiting to prevent spam, and a command blacklist for dangerous operations.
-
-### 4. Memory System — All Local
-- **Short-term Memory**: Manages conversation history in memory.
-- **Long-term Memory**: Uses a [ChromaDB](https://www.trychroma.com/) vector database stored locally.
-- **Episodic Memory**: Stores summaries of past tasks and conversations.
-- **Semantic Memory**: Stores learned knowledge from tutorials, documentation, and other sources.
-- **Memory Retrieval**: Queries relevant memories when answering questions or performing tasks.
-
-### 5. Skill Registry
-- Skills are real Python modules located in the `skills/` directory.
-- Each skill has a name, description, and an `execute` function.
-- Timmy can list available skills and use them as needed.
-- Easily extensible: new skills can be added by simply dropping a Python file into the directory.
-- **Starter Skills Included**:
-    - `web_search`: Performs web searches.
-    - `file_manager`: Manages file system operations.
-    - `note_taking`: Saves notes to local files.
-    - `system_info`: Gathers system information (macOS).
-
-### 6. Learning Pipeline
-- **YouTube Transcript Extraction**: Extracts transcripts from YouTube videos using `youtube-transcript-api`.
-- **Web Page Content Extraction**: Extracts content from web pages using BeautifulSoup and requests.
-- **Content Chunking and Embedding**: Chunks extracted content and embeds it into ChromaDB for semantic memory.
-- Timmy can be instructed to "learn from [URL]", processing and storing the knowledge for future use.
-
-### 7. Safety & Guardrails
-- **Confirmation Prompts**: Required for file deletion, system commands that modify system settings, and software installation.
-- **Rate Limiting**: Configurable maximum actions per minute.
-- **Logging**: All actions are logged to a local file (`data/logs/timmy.log`).
-- **Kill Switch**: `Ctrl+C` gracefully stops all operations.
+-   **Multi-Model Support**: Utilizes various local Ollama models (e.g., `qwen3:30b`, `qwen3-coder:30b`) for different tasks, with dynamic switching capabilities.
+-   **Council System**: Activates when facing complex problems, querying all available local models and synthesizing their responses for a comprehensive answer.
+-   **No Rate Limits, Full Control**: Operates without artificial limitations, with full access to system commands. Destructive actions are subject to a confirmation prompt.
+-   **Smart Loop Detection**: Prevents repetitive actions or errors by detecting loops and triggering a "rethink mode" to brainstorm new strategies.
+-   **Web-based Chat Interface**: A clean, modern dark-themed GUI for interacting with Timmy, featuring conversation history, streaming responses, tool execution results, and Council activation indicators.
+-   **Full Computer Control (macOS)**:
+    -   **Shell**: Execute any terminal command.
+    -   **File System**: Read, write, create, delete, search files/folders.
+    -   **Browser**: Playwright automation for web navigation, content extraction, form filling, and clicks.
+    -   **Web Search**: DuckDuckGo search with parsed results.
+    -   **App Control**: Open, close, and interact with Mac applications via AppleScript.
+-   **Local Memory System (ChromaDB)**: Stores conversation history, task summaries, learned knowledge, and episodic memory locally.
+-   **Learning Pipeline**: Extracts and embeds knowledge from YouTube transcripts and web pages into its semantic memory.
+-   **Skill Registry**: Modular Python modules for easily adding new capabilities.
 
 ## Project Structure
 
 ```
 timmy/
-├── main.py              # Entry point, chat loop
-├── agent.py             # Core agent logic, orchestration
-├── brain.py             # Ollama integration, prompt management
+├── main.py              # Entry point — starts the web server and agent
+├── agent.py             # Core agent orchestration
+├── brain.py             # Ollama integration, multi-model support
+├── council.py           # Council system — query all models, synthesize
 ├── memory.py            # ChromaDB memory system
-├── config.py            # Configuration (model, safety settings, etc.)
+├── loop_detector.py     # Smart loop detection and rethink system
+├── config.py            # All configuration — models, paths, settings
 ├── requirements.txt     # Python dependencies
+├── server.py            # FastAPI web server for chat GUI
+├── templates/
+│   └── index.html       # Chat interface HTML
+├── static/
+│   ├── style.css        # Chat interface styling
+│   └── script.js        # Chat interface JS (websocket/SSE for streaming)
 ├── tools/
 │   ├── __init__.py
-│   ├── base.py          # Base tool class
-│   ├── shell.py         # Terminal/shell commands
-│   ├── filesystem.py    # File operations
-│   ├── browser.py       # Playwright browser automation
-│   ├── web_search.py    # Web search
-│   └── app_control.py   # Mac app control via osascript
+│   ├── base.py
+│   ├── shell.py
+│   ├── filesystem.py
+│   ├── browser.py
+│   ├── web_search.py
+│   └── app_control.py
 ├── skills/
 │   ├── __init__.py
-│   ├── base.py          # Base skill class
-│   ├── web_search.py    # Web search skill
-│   ├── file_manager.py  # File management skill
-│   ├── note_taking.py   # Note taking skill
-│   └── system_info.py   # System information skill
+│   ├── base.py
+│   ├── web_search.py
+│   ├── file_manager.py
+│   ├── note_taking.py
+│   ├── system_info.py
+│   └── code_writer.py
 ├── learning/
 │   ├── __init__.py
-│   ├── youtube.py       # YouTube transcript extraction
-│   ├── web_scraper.py   # Web page content extraction
-│   └── knowledge.py     # Knowledge processing and storage
-├── data/                # Local data storage
-│   ├── memory/          # ChromaDB storage
-│   ├── logs/            # Action logs
-│   └── knowledge/       # Learned content
-└── README.md            # Setup instructions for MacBook
+│   ├── youtube.py
+│   ├── web_scraper.py
+└── README.md
 ```
 
-## Prerequisites
+## Step-by-Step Tutorial for MacBook Users
 
-To run Timmy on your MacBook, you will need:
+This guide will walk you through setting up and running your Timmy AI agent on a MacBook Pro.
 
-- **Python 3.11+**
-- **Ollama**: Installed and running locally. You can download it from [ollama.ai](https://ollama.ai/). Ensure you have a model downloaded (e.g., `ollama run llama3`).
-- **Playwright Dependencies**: For browser automation, you'll need to install Playwright's browser binaries. This is typically done after installing the `playwright` Python package.
+### 1. Prerequisites
 
-## Step-by-Step Setup Instructions for MacBook
+Before you begin, ensure you have the following installed on your MacBook:
 
-1.  **Clone the Repository**:
+-   **Homebrew**: A package manager for macOS. Install it by running:
     ```bash
-    git clone https://github.com/BenGurWaves/timmy.git
-    cd timmy
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     ```
-
-2.  **Install Python Dependencies**:
-    It's recommended to use a virtual environment.
+-   **Python 3.9+**: Install via Homebrew:
     ```bash
-    python3.11 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+    brew install python
     ```
+-   **Git**: Usually pre-installed on macOS. Verify with `git --version`.
+-   **Ollama**: Download and install from [ollama.com](https://ollama.com/). Ensure it's running in the background.
+-   **Ollama Models**: Download the required models using the Ollama CLI. Timmy is configured to use:
+    -   `qwen3:30b` (main brain model)
+    -   `qwen3-coder:30b` (coding tasks)
+    -   `deepseek-coder:33b` (coding tasks, alternative)
+    -   You can download them with commands like: `ollama pull qwen3:30b`
 
-3.  **Install Playwright Browser Binaries**:
-    ```bash
-    playwright install
-    ```
+### 2. Clone the Repository
 
-4.  **Install Ollama and Download a Model**:
-    If you haven't already, download and install Ollama from [ollama.ai](https://ollama.ai/).
-    Then, download a model (e.g., Llama3):
-    ```bash
-    ollama run llama3
-    ```
-    Ensure Ollama is running in the background.
+Open your Terminal application and clone the Timmy repository:
 
-## How to Run Timmy
+```bash
+cd ~ # Navigate to your home directory or preferred location
+git clone https://github.com/BenGurWaves/timmy.git
+cd timmy
+```
 
-From the `timmy/` directory (with your virtual environment activated):
+### 3. Set up a Python Virtual Environment
+
+It's best practice to use a virtual environment to manage project dependencies:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 4. Install Dependencies
+
+Install the Python packages required by Timmy:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Install Playwright Browsers
+
+Timmy uses Playwright for browser automation. Install the necessary browser binaries:
+
+```bash
+playwright install
+```
+
+### 6. Verify Ollama is Running
+
+Ensure the Ollama application is running in your macOS menu bar. You can also check its status via the terminal:
+
+```bash
+ollama list
+```
+This command should list the models you've pulled.
+
+### 7. Start Timmy
+
+With all dependencies installed and Ollama running, you can now start the Timmy AI agent:
 
 ```bash
 python main.py
 ```
 
-You can also specify a different Ollama model:
+You should see output indicating the FastAPI server starting, typically on `http://0.0.0.0:8000`.
 
-```bash
-python main.py --model mistral
+### 8. Open the Chat Interface in Browser
+
+Open your web browser and navigate to:
+
+```
+http://localhost:8000
 ```
 
-## How to Add New Skills
+You will see the Timmy AI chat interface.
+
+### 9. How to Talk to Timmy
+
+Type your messages into the input box at the bottom and press Enter or click "Send". Timmy will respond, and you'll see status updates like "Timmy is thinking..." or "Using skill: Web Search...".
+
+### 10. How to Tell Timmy to Learn from a URL
+
+Timmy can learn from online content. Try these commands:
+
+-   **Learn from a YouTube video**: `learn from youtube https://www.youtube.com/watch?v=your_video_id`
+-   **Learn from a web page**: `learn from webpage https://example.com/article`
+
+Timmy will process the content and store it in its semantic memory.
+
+### 11. How to Add New Skills
 
 To add a new skill to Timmy:
 
 1.  Create a new Python file (e.g., `my_new_skill.py`) in the `timmy/skills/` directory.
-2.  Define a class in this file that inherits from `BaseSkill` (from `skills.base`).
-3.  Implement the `__init__` method to set the skill's `name` and `description`.
-4.  Implement the `execute` method with the logic for your skill.
+2.  Define a class that inherits from `skills.base.Skill` and implements the `execute` method.
+3.  Add your new skill to the `ALL_SKILLS` list in `timmy/skills/__init__.py`.
+4.  Restart Timmy (`python main.py`) for the new skill to be loaded.
 
-Example (`timmy/skills/my_new_skill.py`):
+### 12. What the Council System Is and When It Activates
 
-```python
-from .base import BaseSkill
-import logging
+The **Council System** is Timmy's mechanism for handling complex, ambiguous, or critical tasks. When Timmy detects such a situation (e.g., a very long or complex query, or if explicitly asked to "convene council"), it will:
 
-logger = logging.getLogger(__name__)
+1.  Query **all available local Ollama models** (as defined in `config.py`) with the same problem statement.
+2.  Collect individual responses from each model.
+3.  Use its main brain model (`qwen3:30b`) to **synthesize** these diverse responses into a single, comprehensive, and well-reasoned answer.
 
-class MyNewSkill(BaseSkill):
-    def __init__(self):
-        super().__init__(
-            name="my_new_skill",
-            description="A description of what my new skill does."
-        )
+This process ensures that Timmy benefits from multiple perspectives and reduces the risk of single-model biases or failures, leading to more robust decision-making.
 
-    def execute(self, *args, **kwargs):
-        logger.info("My new skill is executing!")
-        # Add your skill logic here
-        return "My new skill completed successfully!"
-```
-
-Timmy will automatically discover and load this new skill when it starts.
-
-## Available Commands (within Timmy's chat interface)
-
--   `exit`: Quits the Timmy application.
--   You can interact with Timmy by typing natural language prompts. Timmy will use its brain, memory, tools, and skills to respond.
-
-## Future Enhancements
-
--   GUI-based chat interface.
--   More sophisticated tool and skill selection logic.
--   Advanced context window management.
--   Integration with more local LLMs and embedding models.
--   Improved web parsing for search results and learning.
+Enjoy interacting with your enhanced Timmy AI agent!
