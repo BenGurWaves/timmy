@@ -1,13 +1,13 @@
 """
 agent.py
 
-This module defines the core Agent class for Timmy AI. It orchestrates interactions
-between the Brain, Council, Memory, Loop Detector, Tools, and Skills.
-It processes user messages, decides on actions, and manages the agent's state.
+Core Agent class for Timmy AI. The brain (qwen3:30b) decides what to do.
+It sees the available tools and picks the right one, or just responds directly.
 """
 
 import json
 import datetime
+import traceback
 from typing import Dict, Any, List, Generator
 
 from brain import Brain
@@ -19,151 +19,219 @@ from skills import ALL_SKILLS, Skill, CodeWriterSkill
 from learning import YouTubeLearner, WebScraper
 
 
-class Agent:
-    """
-    The core AI agent, responsible for processing messages, making decisions,
-    and orchestrating various components like Brain, Council, Memory, Tools, and Skills.
-    """
+SYSTEM_PROMPT = """You are Timmy, a powerful AI agent running locally on Ben's Mac.
+You are NOT just a chatbot. You have FULL control of this computer through your tools.
 
+AVAILABLE TOOLS:
+{tools_description}
+
+IMPORTANT RULES:
+1. When the user asks you to DO something (create files, search the web, run commands, open apps, etc.), you MUST use your tools. NEVER say "I can't do that" — you CAN.
+2. To use a tool, respond with a JSON block like this:
+```tool
+{{"tool": "tool_name", "params": {{"param1": "value1"}}}}
+```
+3. You can chain multiple tool calls by responding with multiple ```tool blocks.
+4. After using a tool, you will see the result. Then give the user a natural summary.
+5. If you just need to chat/answer a question (no action needed), respond normally without any tool blocks.
+6. You run on Ben's Mac at /Users/bengur/Desktop/timmy — the user's home is /Users/bengur and desktop is /Users/bengur/Desktop.
+7. For web searches, use the "Web Search" tool. For creating files/folders, use "File System Manager". For terminal commands, use "Shell Executor".
+8. You have access to a council of AI models for hard problems. If something is really complex, mention you can convene the council.
+9. Be helpful, direct, and confident. You are Timmy — not qwen3, not an AI that "can't do things". You ARE the agent.
+
+TOOL REFERENCE:
+- "Shell Executor": params: {{"command": "any terminal command"}}
+- "File System Manager": params: {{"operation": "read|write|create_dir|delete|list|search|append", "path": "/full/path", "content": "text" (for write/append)}}
+- "Web Search": params: {{"query": "search terms"}}
+- "Browser": params: {{"operation": "open_page|get_content|search_extract|fill_field|click", "url": "...", "selector": "..."}}
+- "Application Control (macOS)": params: {{"operation": "open|close|send_keystrokes", "app_name": "AppName"}}
+- "YouTube Learner": params: {{"url": "youtube_url"}}
+- "Web Scraper": params: {{"url": "any_url"}}
+"""
+
+
+class Agent:
     def __init__(self):
         self.brain = Brain()
         self.council = Council(self.brain)
         self.memory = Memory()
         self.loop_detector = LoopDetector()
 
-        # Initialize tools and skills
+        # Initialize tools
         self.tools: Dict[str, Tool] = {tool.name: tool for tool in ALL_TOOLS}
         self.skills: Dict[str, Skill] = {skill.name: skill for skill in ALL_SKILLS}
-
-        # CodeWriterSkill needs a Brain instance
         self.skills["Code Writer"] = CodeWriterSkill(self.brain)
 
-        # Initialize learning modules
+        # Learning modules
         self.youtube_learner = YouTubeLearner(self.memory)
         self.web_scraper = WebScraper(self.memory)
 
+        # Build tools description for the system prompt
+        self.tools_description = self._build_tools_description()
+
+        # Conversation messages for context
+        self.conversation: List[Dict[str, str]] = []
+
         print("Agent initialized with Brain, Council, Memory, Loop Detector, Tools, Skills, and Learning modules.")
 
-    def _decide_action(self, user_message: str) -> Dict[str, Any]:
-        """
-        Uses the main brain model to decide the next action based on the user message.
-        """
-        if "learn from youtube" in user_message.lower() and "http" in user_message:
-            url = "http" + user_message.split("http")[-1].strip()
-            return {"action": "learn_youtube", "url": url}
-        elif "learn from webpage" in user_message.lower() and "http" in user_message:
-            url = "http" + user_message.split("http")[-1].strip()
-            return {"action": "learn_webpage", "url": url}
-        elif "learn from" in user_message.lower() and "http" in user_message:
-            url = "http" + user_message.split("http")[-1].strip()
-            if "youtube.com" in url or "youtu.be" in url:
-                return {"action": "learn_youtube", "url": url}
+    def _build_tools_description(self) -> str:
+        lines = []
+        for tool in self.tools.values():
+            lines.append(f"- {tool.name}: {tool.description}")
+        lines.append("- YouTube Learner: Extracts and learns from YouTube video transcripts")
+        lines.append("- Web Scraper: Extracts and learns from any web page content")
+        return "\n".join(lines)
+
+    def _get_system_prompt(self) -> str:
+        return SYSTEM_PROMPT.format(tools_description=self.tools_description)
+
+    def _extract_tool_calls(self, response_text: str) -> List[Dict[str, Any]]:
+        """Extract tool call JSON blocks from the response."""
+        tool_calls = []
+        # Look for ```tool ... ``` blocks
+        parts = response_text.split("```tool")
+        for part in parts[1:]:  # Skip the first part (before any tool block)
+            end_idx = part.find("```")
+            if end_idx != -1:
+                json_str = part[:end_idx].strip()
+                try:
+                    tool_call = json.loads(json_str)
+                    tool_calls.append(tool_call)
+                except json.JSONDecodeError:
+                    # Try to find JSON within the text
+                    try:
+                        start = json_str.index("{")
+                        end = json_str.rindex("}") + 1
+                        tool_call = json.loads(json_str[start:end])
+                        tool_calls.append(tool_call)
+                    except (ValueError, json.JSONDecodeError):
+                        pass
+
+        # Also check for inline JSON tool calls (without code blocks)
+        if not tool_calls and '"tool"' in response_text and '"params"' in response_text:
+            try:
+                start = response_text.index("{")
+                end = response_text.rindex("}") + 1
+                candidate = response_text[start:end]
+                tool_call = json.loads(candidate)
+                if "tool" in tool_call:
+                    tool_calls.append(tool_call)
+            except (ValueError, json.JSONDecodeError):
+                pass
+
+        return tool_calls
+
+    def _execute_tool(self, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a tool by name with given params."""
+        # Handle special tools
+        if tool_name == "YouTube Learner":
+            return self.youtube_learner.learn_from_youtube(params.get("url", ""))
+        elif tool_name == "Web Scraper":
+            return self.web_scraper.learn_from_webpage(params.get("url", ""))
+        elif tool_name == "Council":
+            return {"result": self.council.convene(params.get("problem", ""))}
+
+        # Handle registered tools
+        if tool_name in self.tools:
+            tool = self.tools[tool_name]
+            return tool.execute(**params)
+
+        # Try matching by partial name
+        for name, tool in self.tools.items():
+            if tool_name.lower() in name.lower() or name.lower() in tool_name.lower():
+                return tool.execute(**params)
+
+        return {"status": "error", "message": f"Unknown tool: {tool_name}"}
+
+    def _strip_tool_blocks(self, text: str) -> str:
+        """Remove tool call blocks from response text to get the natural language part."""
+        result = text
+        while "```tool" in result:
+            start = result.index("```tool")
+            end = result.find("```", start + 7)
+            if end != -1:
+                result = result[:start] + result[end + 3:]
             else:
-                return {"action": "learn_webpage", "url": url}
-        elif "search" in user_message.lower():
-            query = user_message.lower().replace("search", "").strip()
-            return {"action": "use_skill", "skill_name": "Web Search", "query": query}
-        elif "read file" in user_message.lower():
-            path = user_message.lower().replace("read file", "").strip()
-            return {"action": "use_skill", "skill_name": "File Manager", "operation": "read", "path": path}
-        elif "write file" in user_message.lower():
-            return {"action": "respond", "response": "To write a file, please specify the path and content clearly."}
-        elif "system info" in user_message.lower():
-            return {"action": "use_skill", "skill_name": "System Information", "info_type": "all"}
-        elif "take note" in user_message.lower():
-            note_content = user_message.lower().replace("take note", "").strip()
-            return {"action": "use_skill", "skill_name": "Note Taking", "operation": "take", "content": note_content}
-        elif "retrieve note" in user_message.lower():
-            query = user_message.lower().replace("retrieve note", "").strip()
-            return {"action": "use_skill", "skill_name": "Note Taking", "operation": "retrieve", "query": query}
-        elif "council" in user_message.lower() or len(user_message.split()) > 20:
-            return {"action": "convene_council", "problem": user_message}
-        else:
-            return {"action": "respond", "response": None}
+                result = result[:start]
+        return result.strip()
 
     def handle_message(self, user_message: str) -> Generator[Dict[str, Any], None, None]:
-        """
-        Processes a user message, decides on an action, executes it, and yields responses.
-        """
+        """Process a user message through the brain, execute tools if needed, respond."""
+        # Store in memory
+        ts = datetime.datetime.now().isoformat()
         self.memory.add_to_memory("conversation_history", f"User: {user_message}",
-                                   metadata={"role": "user", "timestamp": datetime.datetime.now().isoformat()})
-        self.loop_detector.record_action("user_message", {"message": user_message})
+                                   metadata={"role": "user", "timestamp": ts})
 
-        action_decision = self._decide_action(user_message)
-        action_type = action_decision["action"]
+        # Add to conversation context
+        self.conversation.append({"role": "user", "content": user_message})
+        # Keep last 20 messages for context
+        if len(self.conversation) > 20:
+            self.conversation = self.conversation[-20:]
 
-        if self.loop_detector.detect_loop():
-            yield {"type": "status", "text": "Loop detected! Timmy is rethinking its approach..."}
-            yield {"type": "text", "text": "It seems I might be stuck. Let me try a different approach or ask for clarification."}
-            self.loop_detector.reset()
-            rethink_response = self.brain.think(
-                f"I detected a loop while trying to respond to: {user_message}. Please help me rethink or provide more context."
-            )
-            yield {"type": "text", "text": rethink_response}
-            self.memory.add_to_memory("conversation_history", f"Timmy: {rethink_response}",
-                                       metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})
-            return
+        yield {"type": "status", "text": "Timmy is thinking..."}
 
-        response_text = ""
+        try:
+            # Build messages for Ollama
+            messages = [{"role": "system", "content": self._get_system_prompt()}]
+            messages.extend(self.conversation)
 
-        if action_type == "learn_youtube":
-            yield {"type": "status", "text": "Learning from YouTube..."}
-            result = self.youtube_learner.learn_from_youtube(action_decision["url"])
-            yield {"type": "tool_output", "tool_name": "YouTube Learner", "output": json.dumps(result, indent=2)}
-            response_text = f"YouTube learning complete: {result.get('message', '')}"
-            yield {"type": "text", "text": response_text}
-        elif action_type == "learn_webpage":
-            yield {"type": "status", "text": "Learning from Webpage..."}
-            result = self.web_scraper.learn_from_webpage(action_decision["url"])
-            yield {"type": "tool_output", "tool_name": "Web Scraper", "output": json.dumps(result, indent=2)}
-            response_text = f"Web page learning complete: {result.get('message', '')}"
-            yield {"type": "text", "text": response_text}
-        elif action_type == "use_skill":
-            skill_name = action_decision["skill_name"]
-            if skill_name in self.skills:
-                yield {"type": "status", "text": f"Using skill: {skill_name}..."}
-                try:
-                    skill_args = {k: v for k, v in action_decision.items() if k not in ["action", "skill_name"]}
-                    result = self.skills[skill_name].execute(**skill_args)
-                    yield {"type": "tool_output", "tool_name": skill_name, "output": json.dumps(result, indent=2)}
-                    response_text = f"Skill '{skill_name}' executed. Result: {result.get('message', json.dumps(result))}"
-                    yield {"type": "text", "text": response_text}
-                except Exception as e:
-                    self.loop_detector.record_error(str(e), {"skill": skill_name, "args": skill_args})
-                    response_text = f"Error executing skill {skill_name}: {e}"
-                    yield {"type": "error", "text": response_text}
+            # Get brain's response
+            print(f"Thinking with model: {self.brain.main_model}")
+            response = self.brain._call_ollama(self.brain.main_model, None, messages=messages)
+            brain_response = response['message']['content']
+            print(f"Brain response: {brain_response[:200]}...")
+
+            # Check for tool calls
+            tool_calls = self._extract_tool_calls(brain_response)
+
+            if tool_calls:
+                # Execute each tool call
+                all_results = []
+                for tc in tool_calls:
+                    tool_name = tc.get("tool", "")
+                    params = tc.get("params", {})
+                    yield {"type": "status", "text": f"Using tool: {tool_name}..."}
+                    print(f"Executing tool: {tool_name} with params: {params}")
+
+                    try:
+                        result = self._execute_tool(tool_name, params)
+                        all_results.append({"tool": tool_name, "result": result})
+                        yield {"type": "tool_output", "tool_name": tool_name,
+                               "output": json.dumps(result, indent=2, default=str)}
+                    except Exception as e:
+                        error_result = {"status": "error", "message": str(e)}
+                        all_results.append({"tool": tool_name, "result": error_result})
+                        yield {"type": "tool_output", "tool_name": tool_name,
+                               "output": json.dumps(error_result, indent=2)}
+
+                # Now ask the brain to summarize the results for the user
+                tool_results_text = json.dumps(all_results, indent=2, default=str)
+                summary_messages = messages + [
+                    {"role": "assistant", "content": brain_response},
+                    {"role": "user", "content": f"Tool results:\n{tool_results_text}\n\nNow give the user a clear, natural summary of what happened. Do NOT include any tool blocks in this response."}
+                ]
+
+                summary_response = self.brain._call_ollama(self.brain.main_model, None, messages=summary_messages)
+                summary_text = summary_response['message']['content']
+                # Strip any accidental tool blocks from summary
+                summary_text = self._strip_tool_blocks(summary_text)
+
+                yield {"type": "text", "text": summary_text}
+
+                # Store in conversation
+                self.conversation.append({"role": "assistant", "content": summary_text})
+                self.memory.add_to_memory("conversation_history", f"Timmy: {summary_text}",
+                                           metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})
             else:
-                response_text = f"Unknown skill: {skill_name}"
-                yield {"type": "error", "text": response_text}
-        elif action_type == "convene_council":
-            yield {"type": "council_activated"}
-            problem = action_decision["problem"]
-            try:
-                final_answer = self.council.convene(problem)
-                response_text = f"Council's synthesized answer: {final_answer}"
-                yield {"type": "text", "text": response_text}
-            except Exception as e:
-                self.loop_detector.record_error(str(e), {"council_problem": problem})
-                response_text = f"Error convening council: {e}"
-                yield {"type": "error", "text": response_text}
-        else:  # Direct response from brain
-            yield {"type": "status", "text": "Timmy is thinking..."}
-            try:
-                # Retrieve relevant memory for context
-                relevant_memories = self.memory.retrieve_from_memory("semantic_knowledge", user_message, n_results=3)
-                context = "\n".join(relevant_memories) if relevant_memories else ""
+                # No tool calls — just a direct response
+                clean_response = self._strip_tool_blocks(brain_response)
+                yield {"type": "text", "text": clean_response}
 
-                prompt_with_context = f"""You are Timmy, an AI assistant. Respond to the user's query.
-Context from memory: {context}
-User: {user_message}"""
+                self.conversation.append({"role": "assistant", "content": clean_response})
+                self.memory.add_to_memory("conversation_history", f"Timmy: {clean_response}",
+                                           metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})
 
-                response_text = self.brain.think(prompt_with_context)
-                yield {"type": "text", "text": response_text}
-            except Exception as e:
-                self.loop_detector.record_error(str(e), {"user_message": user_message})
-                response_text = f"Error generating response: {e}"
-                yield {"type": "error", "text": response_text}
-
-        if response_text:
-            self.memory.add_to_memory("conversation_history", f"Timmy: {response_text}",
-                                       metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            print(f"Agent error: {traceback.format_exc()}")
+            yield {"type": "error", "text": error_msg}
