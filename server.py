@@ -6,14 +6,14 @@ It handles API endpoints for chat, tool execution, and serves the static fronten
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 import json
 import os
 
-from agent import Agent # Assuming Agent class is accessible
+from agent import Agent
 from config import WEB_SERVER_HOST, WEB_SERVER_PORT, PROJECT_ROOT
 
 app = FastAPI()
@@ -27,12 +27,26 @@ templates = Jinja2Templates(directory=os.path.join(PROJECT_ROOT, "templates"))
 # Initialize the agent (this will be done once when the server starts)
 agent = Agent()
 
+
 @app.get("/", response_class=HTMLResponse)
 async def get(request: Request):
     """
     Serves the main chat interface HTML page.
     """
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/history")
+async def get_history():
+    """
+    Returns the conversation history for restoring chat on page refresh.
+    """
+    try:
+        history = agent.memory.get_conversation_history(n_messages=50)
+        return JSONResponse(content={"messages": history})
+    except Exception as e:
+        return JSONResponse(content={"messages": [], "error": str(e)})
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -47,21 +61,25 @@ async def websocket_endpoint(websocket: WebSocket):
             user_message = message.get("message")
 
             if user_message:
-                # Send a 'thinking' status to the frontend
-                await websocket.send_json({"type": "status", "text": "Timmy is thinking..."})
-
                 # Process the message with the agent
-                response_generator = agent.handle_message(user_message)
-                
-                # Stream responses back to the client
-                for response_chunk in response_generator:
-                    await websocket.send_json(response_chunk)
+                try:
+                    response_generator = agent.handle_message(user_message)
+
+                    # Stream responses back to the client
+                    for response_chunk in response_generator:
+                        await websocket.send_json(response_chunk)
+                except Exception as e:
+                    print(f"Agent error: {e}")
+                    await websocket.send_json({"type": "error", "text": str(e)})
 
     except WebSocketDisconnect:
         print("Client disconnected")
     except Exception as e:
         print(f"WebSocket error: {e}")
-        await websocket.send_json({"type": "error", "text": str(e)})
+        try:
+            await websocket.send_json({"type": "error", "text": str(e)})
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

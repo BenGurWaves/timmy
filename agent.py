@@ -7,6 +7,7 @@ It processes user messages, decides on actions, and manages the agent's state.
 """
 
 import json
+import datetime
 from typing import Dict, Any, List, Generator
 
 from brain import Brain
@@ -84,7 +85,8 @@ class Agent:
         """
         Processes a user message, decides on an action, executes it, and yields responses.
         """
-        self.memory.add_to_memory("conversation_history", f"User: {user_message}")
+        self.memory.add_to_memory("conversation_history", f"User: {user_message}",
+                                   metadata={"role": "user", "timestamp": datetime.datetime.now().isoformat()})
         self.loop_detector.record_action("user_message", {"message": user_message})
 
         action_decision = self._decide_action(user_message)
@@ -98,7 +100,8 @@ class Agent:
                 f"I detected a loop while trying to respond to: {user_message}. Please help me rethink or provide more context."
             )
             yield {"type": "text", "text": rethink_response}
-            self.memory.add_to_memory("conversation_history", f"Timmy: {rethink_response}")
+            self.memory.add_to_memory("conversation_history", f"Timmy: {rethink_response}",
+                                       metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})
             return
 
         response_text = ""
@@ -162,4 +165,5 @@ User: {user_message}"""
                 yield {"type": "error", "text": response_text}
 
         if response_text:
-            self.memory.add_to_memory("conversation_history", f"Timmy: {response_text}")
+            self.memory.add_to_memory("conversation_history", f"Timmy: {response_text}",
+                                       metadata={"role": "assistant", "timestamp": datetime.datetime.now().isoformat()})

@@ -51,11 +51,13 @@ class Memory:
         if not id:
             id = f"{collection_name}_{self.collections[collection_name].count() + 1}"
 
-        self.collections[collection_name].add(
-            documents=[document],
-            metadatas=[metadata if metadata else {}],
-            ids=[id]
-        )
+        add_kwargs = {
+            "documents": [document],
+            "ids": [id]
+        }
+        if metadata:
+            add_kwargs["metadatas"] = [metadata]
+        self.collections[collection_name].add(**add_kwargs)
         print(f"Added to {collection_name}: {document[:50]}...")
 
     def retrieve_from_memory(self, collection_name: str, query_text: str, n_results: int = 5) -> List[Dict[str, Any]]:
@@ -65,12 +67,17 @@ class Memory:
         if collection_name not in self.collections:
             raise ValueError(f"Collection '{collection_name}' does not exist.")
 
+        # Don't query if collection is empty
+        if self.collections[collection_name].count() == 0:
+            return []
+        actual_n = min(n_results, self.collections[collection_name].count())
         results = self.collections[collection_name].query(
             query_texts=[query_text],
-            n_results=n_results,
+            n_results=actual_n,
             include=["documents", "metadatas"]
         )
-        return results["documents"]
+        # Flatten the nested list
+        return results["documents"][0] if results["documents"] else []
 
     def get_conversation_history(self, n_messages: int = 10) -> List[str]:
         """
