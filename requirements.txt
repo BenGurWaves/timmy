@@ -1,0 +1,9 @@
+ollama
+chromadb
+playwright
+beautifulsoup4
+requests
+youtube-transcript-api
+sentence-transformers
+playwright
+youtube-transcript-api
