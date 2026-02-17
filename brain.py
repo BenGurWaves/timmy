@@ -7,7 +7,7 @@ for various tasks (e.g., main brain, coding tasks).
 """
 
 import ollama
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from config import DEFAULT_MAIN_MODEL, DEFAULT_CODING_MODEL, CODING_MODEL_FALLBACK
 
 class Brain:
@@ -73,10 +73,6 @@ class Brain:
     def get_available_models(self) -> List[str]:
         """
         Returns a list of models available in Ollama.
-        This would typically query the Ollama server, but for now, we'll use the config list.
         """
-        # In a real scenario, this would query `ollama.list()`
-        # For now, we rely on the configured list.
         from config import AVAILABLE_MODELS
         return AVAILABLE_MODELS
-

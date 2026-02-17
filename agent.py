@@ -17,6 +17,7 @@ from tools import ALL_TOOLS, Tool
 from skills import ALL_SKILLS, Skill, CodeWriterSkill
 from learning import YouTubeLearner, WebScraper
 
+
 class Agent:
     """
     The core AI agent, responsible for processing messages, making decisions,
@@ -28,11 +29,11 @@ class Agent:
         self.council = Council(self.brain)
         self.memory = Memory()
         self.loop_detector = LoopDetector()
-        
+
         # Initialize tools and skills
         self.tools: Dict[str, Tool] = {tool.name: tool for tool in ALL_TOOLS}
         self.skills: Dict[str, Skill] = {skill.name: skill for skill in ALL_SKILLS}
-        
+
         # CodeWriterSkill needs a Brain instance
         self.skills["Code Writer"] = CodeWriterSkill(self.brain)
 
@@ -45,19 +46,19 @@ class Agent:
     def _decide_action(self, user_message: str) -> Dict[str, Any]:
         """
         Uses the main brain model to decide the next action based on the user message.
-        The decision includes whether to use a tool, a skill, convene the council, or respond directly.
         """
-        # Placeholder for a more sophisticated decision-making process.
-        # In a real implementation, this would involve a structured prompt to the LLM
-        # to output a JSON object indicating the action.
-        
-        # For now, a simple keyword-based decision.
         if "learn from youtube" in user_message.lower() and "http" in user_message:
-            url = user_message.split("http")[-1].strip()
-            return {"action": "learn_youtube", "url": "http" + url}
+            url = "http" + user_message.split("http")[-1].strip()
+            return {"action": "learn_youtube", "url": url}
         elif "learn from webpage" in user_message.lower() and "http" in user_message:
-            url = user_message.split("http")[-1].strip()
-            return {"action": "learn_webpage", "url": "http" + url}
+            url = "http" + user_message.split("http")[-1].strip()
+            return {"action": "learn_webpage", "url": url}
+        elif "learn from" in user_message.lower() and "http" in user_message:
+            url = "http" + user_message.split("http")[-1].strip()
+            if "youtube.com" in url or "youtu.be" in url:
+                return {"action": "learn_youtube", "url": url}
+            else:
+                return {"action": "learn_webpage", "url": url}
         elif "search" in user_message.lower():
             query = user_message.lower().replace("search", "").strip()
             return {"action": "use_skill", "skill_name": "Web Search", "query": query}
@@ -65,7 +66,6 @@ class Agent:
             path = user_message.lower().replace("read file", "").strip()
             return {"action": "use_skill", "skill_name": "File Manager", "operation": "read", "path": path}
         elif "write file" in user_message.lower():
-            # This would need more sophisticated parsing or a structured tool call from the LLM
             return {"action": "respond", "response": "To write a file, please specify the path and content clearly."}
         elif "system info" in user_message.lower():
             return {"action": "use_skill", "skill_name": "System Information", "info_type": "all"}
@@ -75,10 +75,10 @@ class Agent:
         elif "retrieve note" in user_message.lower():
             query = user_message.lower().replace("retrieve note", "").strip()
             return {"action": "use_skill", "skill_name": "Note Taking", "operation": "retrieve", "query": query}
-        elif "council" in user_message.lower() or len(user_message.split()) > 20: # Heuristic for complex problems
+        elif "council" in user_message.lower() or len(user_message.split()) > 20:
             return {"action": "convene_council", "problem": user_message}
         else:
-            return {"action": "respond", "response": None} # Let the brain respond directly
+            return {"action": "respond", "response": None}
 
     def handle_message(self, user_message: str) -> Generator[Dict[str, Any], None, None]:
         """
@@ -92,23 +92,29 @@ class Agent:
 
         if self.loop_detector.detect_loop():
             yield {"type": "status", "text": "Loop detected! Timmy is rethinking its approach..."}
-            # In a real scenario, the agent would use its brain to summarize and brainstorm.
             yield {"type": "text", "text": "It seems I might be stuck. Let me try a different approach or ask for clarification."}
             self.loop_detector.reset()
-            # Fallback to direct response or ask for user input
-            yield {"type": "text", "text": self.brain.think(f"I detected a loop while trying to respond to: {user_message}. Please help me rethink or provide more context.")}
+            rethink_response = self.brain.think(
+                f"I detected a loop while trying to respond to: {user_message}. Please help me rethink or provide more context."
+            )
+            yield {"type": "text", "text": rethink_response}
+            self.memory.add_to_memory("conversation_history", f"Timmy: {rethink_response}")
             return
+
+        response_text = ""
 
         if action_type == "learn_youtube":
             yield {"type": "status", "text": "Learning from YouTube..."}
             result = self.youtube_learner.learn_from_youtube(action_decision["url"])
             yield {"type": "tool_output", "tool_name": "YouTube Learner", "output": json.dumps(result, indent=2)}
-            yield {"type": "text", "text": f"YouTube learning complete: {result.get("message", "")}"}
+            response_text = f"YouTube learning complete: {result.get('message', '')}"
+            yield {"type": "text", "text": response_text}
         elif action_type == "learn_webpage":
             yield {"type": "status", "text": "Learning from Webpage..."}
             result = self.web_scraper.learn_from_webpage(action_decision["url"])
             yield {"type": "tool_output", "tool_name": "Web Scraper", "output": json.dumps(result, indent=2)}
-            yield {"type": "text", "text": f"Web page learning complete: {result.get("message", "")}"}
+            response_text = f"Web page learning complete: {result.get('message', '')}"
+            yield {"type": "text", "text": response_text}
         elif action_type == "use_skill":
             skill_name = action_decision["skill_name"]
             if skill_name in self.skills:
@@ -117,35 +123,43 @@ class Agent:
                     skill_args = {k: v for k, v in action_decision.items() if k not in ["action", "skill_name"]}
                     result = self.skills[skill_name].execute(**skill_args)
                     yield {"type": "tool_output", "tool_name": skill_name, "output": json.dumps(result, indent=2)}
-                    yield {"type": "text", "text": f"Skill \'{skill_name}\' executed. Result: {result.get("message", json.dumps(result))}"}
+                    response_text = f"Skill '{skill_name}' executed. Result: {result.get('message', json.dumps(result))}"
+                    yield {"type": "text", "text": response_text}
                 except Exception as e:
                     self.loop_detector.record_error(str(e), {"skill": skill_name, "args": skill_args})
-                    yield {"type": "error", "text": f"Error executing skill {skill_name}: {e}"}
+                    response_text = f"Error executing skill {skill_name}: {e}"
+                    yield {"type": "error", "text": response_text}
             else:
-                yield {"type": "error", "text": f"Unknown skill: {skill_name}"}
+                response_text = f"Unknown skill: {skill_name}"
+                yield {"type": "error", "text": response_text}
         elif action_type == "convene_council":
             yield {"type": "council_activated"}
             problem = action_decision["problem"]
             try:
                 final_answer = self.council.convene(problem)
-                yield {"type": "text", "text": f"Council's synthesized answer: {final_answer}"}
+                response_text = f"Council's synthesized answer: {final_answer}"
+                yield {"type": "text", "text": response_text}
             except Exception as e:
                 self.loop_detector.record_error(str(e), {"council_problem": problem})
-                yield {"type": "error", "text": f"Error convening council: {e}"}
-        else: # Direct response from brain
+                response_text = f"Error convening council: {e}"
+                yield {"type": "error", "text": response_text}
+        else:  # Direct response from brain
             yield {"type": "status", "text": "Timmy is thinking..."}
             try:
                 # Retrieve relevant memory for context
                 relevant_memories = self.memory.retrieve_from_memory("semantic_knowledge", user_message, n_results=3)
                 context = "\n".join(relevant_memories) if relevant_memories else ""
-                
+
                 prompt_with_context = f"""You are Timmy, an AI assistant. Respond to the user's query.
-                \nContext from memory: {context}\nUser: {user_message}"""
-                
-                response = self.brain.think(prompt_with_context)
-                yield {"type": "text", "text": response}
+Context from memory: {context}
+User: {user_message}"""
+
+                response_text = self.brain.think(prompt_with_context)
+                yield {"type": "text", "text": response_text}
             except Exception as e:
                 self.loop_detector.record_error(str(e), {"user_message": user_message})
-                yield {"type": "error", "text": f"Error generating response: {e}"}
+                response_text = f"Error generating response: {e}"
+                yield {"type": "error", "text": response_text}
 
-        self.memory.add_to_memory("conversation_history", f"Timmy: {response}")
+        if response_text:
+            self.memory.add_to_memory("conversation_history", f"Timmy: {response_text}")

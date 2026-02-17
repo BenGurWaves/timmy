@@ -111,6 +111,9 @@ Install the Python packages required by Timmy:
 pip install -r requirements.txt
 ```
 
+This will install all dependencies including sentence-transformers for the memory embedding system.
+The first run may take a minute to download the embedding model.
+
 ### 5. Install Playwright Browsers
 
 Timmy uses Playwright for browser automation. Install the necessary browser binaries:

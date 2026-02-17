@@ -1,7 +1,11 @@
 """
+config.py
+
 Configuration for the Timmy AI agent.
+All paths are dynamically resolved relative to this file's location.
 """
-from typing import List, Dict, Union
+import os
+from typing import List
 
 # Model Configuration
 DEFAULT_MAIN_MODEL = "qwen3:30b"
@@ -21,13 +25,13 @@ AVAILABLE_MODELS: List[str] = [
     "qwen-insane:latest",
 ]
 
-# Paths
-PROJECT_ROOT = "/home/ubuntu/timmy"  # Assuming the project is in the home directory
-DATA_PATH = f"{PROJECT_ROOT}/data"
-MEMORY_PATH = f"{DATA_PATH}/memory"
-LOGS_PATH = f"{DATA_PATH}/logs"
-KNOWLEDGE_PATH = f"{DATA_PATH}/knowledge"
-SKILLS_PATH = f"{PROJECT_ROOT}/skills"
+# Paths — dynamically resolved from this file's location
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(PROJECT_ROOT, "data")
+MEMORY_PATH = os.path.join(DATA_PATH, "memory")
+LOGS_PATH = os.path.join(DATA_PATH, "logs")
+KNOWLEDGE_PATH = os.path.join(DATA_PATH, "knowledge")
+SKILLS_PATH = os.path.join(PROJECT_ROOT, "skills")
 
 # Loop Detection
 LOOP_DETECTION_WINDOW = 5

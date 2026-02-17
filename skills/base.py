@@ -24,7 +24,7 @@ class Skill(ABC):
         pass
 
     def __str__(self):
-        return f"Skill(name=\\'{self.name}\\\', description=\\'{self.description}\\\')"
+        return f"Skill(name='{self.name}', description='{self.description}')"
 
     def __repr__(self):
         return self.__str__()

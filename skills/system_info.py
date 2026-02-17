@@ -43,7 +43,7 @@ class SystemInfoSkill(Skill):
             results["disk_usage"] = disk_output["stdout"]
 
         if info_type == "all" or info_type == "memory":
-            memory_output = self.shell_tool.execute(command="free -h")
+            memory_output = self.shell_tool.execute(command="vm_stat")
             results["memory_usage"] = memory_output["stdout"]
 
         if not results:
