@@ -2,67 +2,142 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatMessages = document.getElementById("chat-messages");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
+    const statusDot = document.getElementById("status-dot");
+    const connectionStatus = document.getElementById("connection-status");
+    const thinkingBar = document.getElementById("thinking-bar");
+    const thinkingText = document.getElementById("thinking-text");
 
-    // Load chat history on page load
-    loadHistory();
+    let ws = null;
+    let reconnectAttempts = 0;
 
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+    // Load chat history first
+    loadHistory().then(() => {
+        connectWebSocket();
+    });
 
-    ws.onopen = (event) => {
-        console.log("WebSocket opened:", event);
-        appendMessage("Timmy AI: Connected and ready.", "status-message");
-    };
+    function connectWebSocket() {
+        ws = new WebSocket(`ws://${window.location.host}/ws`);
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
+        ws.onopen = () => {
+            statusDot.className = "status-dot connected";
+            connectionStatus.textContent = "Online";
+            reconnectAttempts = 0;
+        };
 
-        if (data.type === "text") {
-            appendMessage(`Timmy AI: ${data.text}`, "timmy-message");
-        } else if (data.type === "status") {
-            appendMessage(data.text, "status-message");
-        } else if (data.type === "tool_output") {
-            appendMessage(`Tool Output (${data.tool_name}):\n${data.output}`, "tool-output");
-        } else if (data.type === "council_activated") {
-            appendMessage("Council Activated: Timmy is consulting with other models.", "council-message");
-        } else if (data.type === "error") {
-            appendMessage(`Error: ${data.text}`, "timmy-message");
-        }
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    };
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
 
-    ws.onclose = (event) => {
-        console.log("WebSocket closed:", event);
-        appendMessage("Disconnected from Timmy AI. Please refresh the page.", "status-message");
-    };
+            if (data.type === "text") {
+                hideThinking();
+                appendMessage(data.text, "timmy-message");
+            } else if (data.type === "status") {
+                showThinking(data.text);
+            } else if (data.type === "thinking") {
+                showThinking(data.text);
+                appendMessage(data.text, "thinking-message");
+            } else if (data.type === "tool_output") {
+                appendToolOutput(data.tool_name, data.output);
+            } else if (data.type === "council_activated") {
+                appendMessage("Council activated — consulting all models...", "council-message");
+            } else if (data.type === "error") {
+                hideThinking();
+                appendMessage(data.text, "timmy-message");
+            }
 
-    ws.onerror = (event) => {
-        console.error("WebSocket error:", event);
-        appendMessage("WebSocket error occurred. Check console for details.", "status-message");
-    };
+            scrollToBottom();
+        };
 
+        ws.onclose = () => {
+            statusDot.className = "status-dot";
+            connectionStatus.textContent = "Disconnected";
+            hideThinking();
+
+            // Auto-reconnect
+            if (reconnectAttempts < 5) {
+                reconnectAttempts++;
+                setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+            }
+        };
+
+        ws.onerror = () => {
+            console.error("WebSocket error");
+        };
+    }
+
+    // Send message
     sendButton.addEventListener("click", sendMessage);
-    messageInput.addEventListener("keypress", (event) => {
-        if (event.key === "Enter") {
+    messageInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
             sendMessage();
         }
     });
 
+    // Auto-resize textarea
+    messageInput.addEventListener("input", () => {
+        messageInput.style.height = "auto";
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + "px";
+    });
+
     function sendMessage() {
         const message = messageInput.value.trim();
-        if (message) {
-            appendMessage(`You: ${message}`, "user-message");
+        if (message && ws && ws.readyState === WebSocket.OPEN) {
+            appendMessage(message, "user-message");
             ws.send(JSON.stringify({ message: message }));
             messageInput.value = "";
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            messageInput.style.height = "auto";
+            scrollToBottom();
         }
     }
 
     function appendMessage(text, className) {
-        const messageElement = document.createElement("div");
-        messageElement.classList.add("message-bubble", className);
-        messageElement.innerText = text;
-        chatMessages.appendChild(messageElement);
+        const el = document.createElement("div");
+        el.classList.add("message-bubble", className);
+        el.textContent = text;
+        chatMessages.appendChild(el);
+    }
+
+    function appendToolOutput(toolName, output) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("tool-output-wrapper");
+
+        const toggle = document.createElement("div");
+        toggle.classList.add("tool-output-toggle");
+        toggle.innerHTML = `<span class="arrow">▶</span> ${toolName} output`;
+
+        const content = document.createElement("div");
+        content.classList.add("tool-output-content");
+        content.textContent = output;
+
+        toggle.addEventListener("click", () => {
+            const arrow = toggle.querySelector(".arrow");
+            if (content.classList.contains("visible")) {
+                content.classList.remove("visible");
+                arrow.classList.remove("open");
+            } else {
+                content.classList.add("visible");
+                arrow.classList.add("open");
+            }
+        });
+
+        wrapper.appendChild(toggle);
+        wrapper.appendChild(content);
+        chatMessages.appendChild(wrapper);
+    }
+
+    function showThinking(text) {
+        thinkingBar.style.display = "flex";
+        thinkingText.textContent = text || "Thinking...";
+        statusDot.className = "status-dot thinking";
+    }
+
+    function hideThinking() {
+        thinkingBar.style.display = "none";
+        statusDot.className = "status-dot connected";
+    }
+
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     async function loadHistory() {
@@ -70,18 +145,25 @@ document.addEventListener("DOMContentLoaded", () => {
             const response = await fetch("/history");
             const data = await response.json();
             if (data.messages && data.messages.length > 0) {
-                appendMessage("--- Previous conversation ---", "status-message");
+                const divider = document.createElement("div");
+                divider.classList.add("history-divider");
+                divider.textContent = "— previous conversation —";
+                chatMessages.appendChild(divider);
+
                 data.messages.forEach((msg) => {
-                    if (msg.startsWith("User: ")) {
-                        appendMessage("You: " + msg.slice(6), "user-message");
-                    } else if (msg.startsWith("Timmy: ")) {
-                        appendMessage("Timmy AI: " + msg.slice(7), "timmy-message");
-                    } else {
-                        appendMessage(msg, "timmy-message");
+                    if (msg.role === "user") {
+                        appendMessage(msg.content, "user-message");
+                    } else if (msg.role === "assistant") {
+                        appendMessage(msg.content, "timmy-message");
                     }
                 });
-                appendMessage("--- End of previous conversation ---", "status-message");
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                const endDivider = document.createElement("div");
+                endDivider.classList.add("history-divider");
+                endDivider.textContent = "— now —";
+                chatMessages.appendChild(endDivider);
+
+                scrollToBottom();
             }
         } catch (e) {
             console.log("Could not load history:", e);

@@ -3,18 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timmy AI Chat</title>
+    <title>Timmy</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h1>Timmy AI</h1>
+            <div class="header-left">
+                <div class="status-dot" id="status-dot"></div>
+                <h1>Timmy</h1>
+            </div>
+            <div class="header-right">
+                <span class="connection-status" id="connection-status">Connecting...</span>
+            </div>
         </div>
         <div class="chat-messages" id="chat-messages"></div>
+        <div class="thinking-bar" id="thinking-bar" style="display: none;">
+            <div class="thinking-pulse"></div>
+            <span id="thinking-text">Thinking...</span>
+        </div>
         <div class="chat-input">
-            <input type="text" id="message-input" placeholder="Type your message...">
-            <button id="send-button">Send</button>
+            <textarea id="message-input" placeholder="Message Timmy..." rows="1"></textarea>
+            <button id="send-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
         </div>
     </div>
     <script src="/static/script.js"></script>

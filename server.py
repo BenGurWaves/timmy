@@ -1,8 +1,7 @@
 """
 server.py
 
-This module implements the FastAPI web server for the Timmy AI agent's chat interface.
-It handles API endpoints for chat, tool execution, and serves the static frontend files.
+FastAPI web server for Timmy AI chat interface.
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
@@ -18,31 +17,22 @@ from config import WEB_SERVER_HOST, WEB_SERVER_PORT, PROJECT_ROOT
 
 app = FastAPI()
 
-# Mount static files (CSS, JS)
 app.mount("/static", StaticFiles(directory=os.path.join(PROJECT_ROOT, "static")), name="static")
-
-# Configure Jinja2 templates
 templates = Jinja2Templates(directory=os.path.join(PROJECT_ROOT, "templates"))
 
-# Initialize the agent (this will be done once when the server starts)
 agent = Agent()
 
 
 @app.get("/", response_class=HTMLResponse)
 async def get(request: Request):
-    """
-    Serves the main chat interface HTML page.
-    """
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/history")
 async def get_history():
-    """
-    Returns the conversation history for restoring chat on page refresh.
-    """
+    """Returns chat history for restoring on page refresh."""
     try:
-        history = agent.memory.get_conversation_history(n_messages=50)
+        history = agent.get_chat_history_for_display(50)
         return JSONResponse(content={"messages": history})
     except Exception as e:
         return JSONResponse(content={"messages": [], "error": str(e)})
@@ -50,9 +40,6 @@ async def get_history():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    Handles WebSocket connections for real-time chat and agent interaction.
-    """
     await websocket.accept()
     try:
         while True:
@@ -61,11 +48,8 @@ async def websocket_endpoint(websocket: WebSocket):
             user_message = message.get("message")
 
             if user_message:
-                # Process the message with the agent
                 try:
                     response_generator = agent.handle_message(user_message)
-
-                    # Stream responses back to the client
                     for response_chunk in response_generator:
                         await websocket.send_json(response_chunk)
                 except Exception as e:
