@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const connectionStatus = document.getElementById("connection-status");
     const thinkingBar = document.getElementById("thinking-bar");
     const thinkingText = document.getElementById("thinking-text");
+    const subconsciousTab = document.getElementById("subconscious-tab");
 
     let ws = null;
     let reconnectAttempts = 0;
@@ -35,13 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!currentTimmyMessage) {
                     currentTimmyMessage = createMessageBubble("timmy-message");
                 }
-                currentTimmyMessage.textContent += data.text;
+                currentTimmyMessage.innerHTML += formatMessage(data.text);
             } else if (data.type === "thinking") {
                 showThinking(data.text);
                 if (!currentThinkingMessage) {
                     currentThinkingMessage = createMessageBubble("thinking-message");
                 }
-                currentThinkingMessage.textContent = "Thinking: " + data.text;
+                currentThinkingMessage.innerHTML = "Thinking: " + formatMessage(data.text);
             } else if (data.type === "status") {
                 showThinking(data.text);
             } else if (data.type === "tool_output") {
@@ -53,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 appendCouncilDebate(data.model, data.text);
             } else if (data.type === "council_summary") {
                 appendMessage("Council Summary: " + data.text, "timmy-message");
+            } else if (data.type === "subconscious_thought") {
+                handleSubconsciousThought(data.text);
             } else if (data.type === "error") {
                 hideThinking();
                 appendMessage(data.text, "error-message");
@@ -121,7 +124,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function appendMessage(text, className) {
         const el = createMessageBubble(className);
-        el.textContent = text;
+        el.innerHTML = formatMessage(text);
+    }
+
+    function formatMessage(text) {
+        // Convert URLs to clickable links
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, function(url) {
+            return '<a href="' + url + '" target="_blank">' + url + '</a>';
+        });
+    }
+
+    function handleSubconsciousThought(thought) {
+        if (subconsciousTab) {
+            const thoughtElement = document.createElement('div');
+            thoughtElement.className = 'subconscious-thought';
+            thoughtElement.innerHTML = formatMessage(thought);
+            subconsciousTab.appendChild(thoughtElement);
+            subconsciousTab.scrollTop = subconsciousTab.scrollHeight;
+        }
     }
 
     function appendCouncilDebate(model, text) {
@@ -134,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const content = document.createElement("div");
         content.classList.add("council-debate-content");
-        content.textContent = text;
+        content.innerHTML = formatMessage(text);
         
         wrapper.appendChild(header);
         wrapper.appendChild(content);
