@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let reconnectAttempts = 0;
     let currentTimmyMessage = null;
     let currentThinkingMessage = null;
+    let currentCouncilMessage = null;
 
     // Load chat history first
     loadHistory().then(() => {
@@ -45,13 +46,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 showThinking(data.text);
             } else if (data.type === "tool_output") {
                 appendToolOutput(data.tool_name, data.output);
-                currentTimmyMessage = null;
-                currentThinkingMessage = null;
+                resetCurrentMessages();
+            } else if (data.type === "council_status") {
+                appendMessage(data.text, "council-status-message");
+            } else if (data.type === "council_debate_chunk") {
+                appendCouncilDebate(data.model, data.text);
+            } else if (data.type === "council_summary") {
+                appendMessage("Council Summary: " + data.text, "timmy-message");
             } else if (data.type === "error") {
                 hideThinking();
                 appendMessage(data.text, "error-message");
-                currentTimmyMessage = null;
-                currentThinkingMessage = null;
+                resetCurrentMessages();
             }
 
             scrollToBottom();
@@ -72,6 +77,12 @@ document.addEventListener("DOMContentLoaded", () => {
         ws.onerror = () => {
             console.error("WebSocket error");
         };
+    }
+
+    function resetCurrentMessages() {
+        currentTimmyMessage = null;
+        currentThinkingMessage = null;
+        currentCouncilMessage = null;
     }
 
     // Send message
@@ -96,8 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ws.send(JSON.stringify({ message: message }));
             messageInput.value = "";
             messageInput.style.height = "auto";
-            currentTimmyMessage = null;
-            currentThinkingMessage = null;
+            resetCurrentMessages();
             scrollToBottom();
         }
     }
@@ -112,6 +122,23 @@ document.addEventListener("DOMContentLoaded", () => {
     function appendMessage(text, className) {
         const el = createMessageBubble(className);
         el.textContent = text;
+    }
+
+    function appendCouncilDebate(model, text) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("council-debate-wrapper");
+        
+        const header = document.createElement("div");
+        header.classList.add("council-debate-header");
+        header.textContent = model;
+        
+        const content = document.createElement("div");
+        content.classList.add("council-debate-content");
+        content.textContent = text;
+        
+        wrapper.appendChild(header);
+        wrapper.appendChild(content);
+        chatMessages.appendChild(wrapper);
     }
 
     function appendToolOutput(toolName, output) {

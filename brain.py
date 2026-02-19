@@ -3,10 +3,12 @@ brain.py
 
 Handles integration with Ollama for language model interactions.
 Supports both simple prompt-based and full messages-based chat calls with streaming.
+Includes support for visual models like Qwen-VL.
 """
 
 import ollama
 import re
+import os
 from typing import Dict, Any, Optional, List, Generator
 from config import DEFAULT_MAIN_MODEL, DEFAULT_CODING_MODEL, CODING_MODEL_FALLBACK
 
@@ -16,6 +18,7 @@ class Brain:
         self.main_model: str = DEFAULT_MAIN_MODEL
         self.coding_model: str = DEFAULT_CODING_MODEL
         self.coding_model_fallback: str = CODING_MODEL_FALLBACK
+        self.visual_model: str = "qwen3-vl:32b" # User's visual model
         print(f"Brain initialized. Main model: {self.main_model}, Coding model: {self.coding_model}")
 
     def _call_ollama_stream(self, model: str, messages: List[Dict], **kwargs) -> Generator[Dict[str, Any], None, None]:
@@ -30,24 +33,36 @@ class Brain:
             print(f"Error calling Ollama model {model}: {e}")
             raise
 
-    def generate_response(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> Generator[Dict[str, Any], None, None]:
-        """
-        Generate a streaming response, yielding chunks that distinguish between thinking and content.
-        """
+    def think(self, prompt: str, model: Optional[str] = None, **kwargs) -> str:
+        """Generate a non-streaming response using the specified model."""
         selected_model = model if model else self.main_model
-        
-        full_content = ""
-        is_thinking = False
-        
-        for chunk in self._call_ollama_stream(selected_model, messages, **kwargs):
-            token = chunk['message']['content']
-            full_content += token
+        print(f"Thinking with model: {selected_model}")
+        try:
+            response = ollama.chat(model=selected_model, messages=[{'role': 'user', 'content': prompt}], **kwargs)
+            return response['message']['content']
+        except Exception as e:
+            print(f"Error calling Ollama model {selected_model}: {e}")
+            raise
+
+    def analyze_image(self, image_path: str, prompt: str) -> str:
+        """Analyze an image using the visual model (Qwen-VL)."""
+        if not os.path.exists(image_path):
+            return f"Error: Image path {image_path} does not exist."
             
-            # Simple heuristic for thinking blocks if the model uses them (e.g., <thought> or similar)
-            # If the model doesn't use tags, we'll treat the first part of the response as thinking 
-            # if it's explicitly requested in the system prompt.
-            
-            yield {"type": "chunk", "content": token}
+        print(f"Analyzing image with model: {self.visual_model}")
+        try:
+            response = ollama.chat(
+                model=self.visual_model,
+                messages=[{
+                    'role': 'user',
+                    'content': prompt,
+                    'images': [image_path]
+                }]
+            )
+            return response['message']['content']
+        except Exception as e:
+            print(f"Error calling visual model {self.visual_model}: {e}")
+            return f"Error analyzing image: {e}"
 
     def switch_model(self, task_type: str, new_model: str) -> None:
         if task_type == 'main':
