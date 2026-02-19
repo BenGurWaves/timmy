@@ -21,7 +21,7 @@ from loop_detector import LoopDetector
 from tools import ALL_TOOLS, Tool
 from skills import ALL_SKILLS, Skill, CodeWriterSkill
 from learning import YouTubeLearner, WebScraper
-from config import PROJECT_ROOT, DATA_PATH
+from config import PROJECT_ROOT, DATA_PATH, TIMS_STUFF_PATH
 from vibe_system import VibeSystem
 from skill_forge import SkillForge
 from subconscious import Subconscious
@@ -70,6 +70,11 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
 You have your own email: {email_manager.get_timmy_email()}. You can use it to create accounts, send emails, and manage your own tasks.
 You can read the user's emails and summarize important updates, but never delete or send emails from their account.
+
+## FILE MANAGEMENT
+- All your internal updates, skills, and tools go into the Timmy folder: {PROJECT_ROOT}
+- All projects, files, and folders you create for the user go into the "tim's Stuff" folder: {TIMS_STUFF_PATH}
+- ALWAYS prioritize saving user-facing work in {TIMS_STUFF_PATH}.
 
 ## THINKING PROTOCOL
 Before you act or respond, you MUST think. Wrap your internal reasoning in <thought> tags.

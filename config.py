@@ -11,6 +11,8 @@ from typing import List
 DEFAULT_MAIN_MODEL = "qwen3:30b"
 DEFAULT_CODING_MODEL = "qwen3-coder:30b"
 CODING_MODEL_FALLBACK = "deepseek-coder:33b"
+REASONING_MODEL = "phi4-reasoning:14b"
+VISUAL_MODEL = "qwen3-vl:32b"
 
 # List of all available models for the Council
 AVAILABLE_MODELS: List[str] = [
@@ -23,6 +25,8 @@ AVAILABLE_MODELS: List[str] = [
     "deepseek-coder:6.7b",
     "gpt-oss:20b",
     "qwen-insane:latest",
+    "phi4-reasoning:14b",
+    "qwen3-vl:32b"
 ]
 
 # Paths — dynamically resolved from this file's location
@@ -32,6 +36,11 @@ MEMORY_PATH = os.path.join(DATA_PATH, "memory")
 LOGS_PATH = os.path.join(DATA_PATH, "logs")
 KNOWLEDGE_PATH = os.path.join(DATA_PATH, "knowledge")
 SKILLS_PATH = os.path.join(PROJECT_ROOT, "skills")
+
+# User-specific paths (MacBook Pro M4 Max)
+# Timmy's Stuff is on the desktop for project files
+USER_HOME = os.path.expanduser("~")
+TIMS_STUFF_PATH = os.path.join(USER_HOME, "Desktop", "tim's Stuff")
 
 # Loop Detection
 LOOP_DETECTION_WINDOW = 5
