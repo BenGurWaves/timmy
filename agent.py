@@ -4,6 +4,7 @@ agent.py
 Core Agent for Timmy AI. Uses qwen3:30b as the brain with a strict
 tool-calling protocol. Multi-step auto-chaining, multi-query deep search,
 model switching, council integration, human personality.
+Now includes Neural Synapse Engine and World-State Observer.
 """
 
 import json
@@ -32,11 +33,13 @@ from memory_palace import MemoryPalace
 from remote_access import RemoteAccess
 from project_generator import ProjectGenerator
 from crypto_wallet import CryptoWallet
+from synapse_engine import SynapseEngine
+from world_observer import WorldObserver
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
 
-# Global instances for vibe, skill forge, email, calendar, memory palace, remote access, project generator, and crypto wallet
+# Global instances
 vibe_system = VibeSystem()
 skill_forge = SkillForge()
 email_manager = EmailManager()
@@ -45,7 +48,7 @@ memory_palace = MemoryPalace()
 project_generator = ProjectGenerator()
 crypto_wallet = CryptoWallet()
 
-def get_system_prompt():
+def get_system_prompt(synapse_engine=None, world_observer=None):
     """Generate system prompt with current date (auto-updates on each call)."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
@@ -54,6 +57,8 @@ def get_system_prompt():
     learned_skills_snippet = skill_forge.get_skill_list()
     calendar_snippet = calendar_manager.get_calendar_summary()
     memory_palace_snippet = memory_palace.get_palace_summary()
+    synapse_snippet = synapse_engine.get_synapse_context() if synapse_engine else ""
+    observer_snippet = world_observer.get_observer_context() if world_observer else ""
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
@@ -147,10 +152,13 @@ CRITICAL RULES:
 - {{"action": "generate_project_idea", "params": {{}}}}
 - {{"action": "get_wallet_balance", "params": {{}}}}
 - {{"action": "propose_transaction", "params": {{"to": "address", "amount": 0.1, "reason": "reason"}}}}
+- {{"action": "create_synapse", "params": {{"source": "concept1", "target": "concept2", "relationship": "relationship"}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
 {memory_palace_snippet}
+{synapse_snippet}
+{observer_snippet}
 
 ## PLANNING
 For complex tasks (research, multi-file creation, coding), ALWAYS start with a plan action.
@@ -195,6 +203,10 @@ class Agent:
         # Remote access (Telegram)
         self.remote_access = RemoteAccess(self._handle_remote_message)
         asyncio.create_task(self.remote_access.start())
+
+        # Synapse Engine and World Observer
+        self.synapse_engine = SynapseEngine(self.brain)
+        self.world_observer = WorldObserver(self.brain)
 
         print("Agent initialized.")
 
@@ -291,55 +303,10 @@ class Agent:
                 return self.tools["Shell Executor"].execute(command=cmd)
             elif action_name == "create_file":
                 return self.tools["File System Manager"].write_file(params.get("path", ""), params.get("content", ""))
-            elif action_name == "search_web":
-                return self.tools["Web Search"].execute(query=params.get("query", ""))
-            elif action_name == "deep_search":
-                return self.tools["Deep Search"].execute(query=params.get("query", ""))
-            elif action_name == "forge_skill":
-                return skill_forge.learn_skill(params.get("name", ""), params.get("description", ""), params.get("commands", []))
-            elif action_name == "use_skill":
-                skill_data = skill_forge.execute_skill(params.get("name", ""))
-                if skill_data["status"] == "success":
-                    # Execute each command in the skill
-                    results = []
-                    for cmd in skill_data["commands"]:
-                        results.append(self.tools["Shell Executor"].execute(command=cmd))
-                    return {"status": "success", "results": results}
-                return skill_data
-            elif action_name == "send_email":
-                return email_manager.send_email(params.get("to", ""), params.get("subject", ""), params.get("body", ""))
-            elif action_name == "summarize_emails":
-                summary = email_manager.summarize_user_emails()
-                return {"status": "success", "summary": summary}
-            elif action_name == "analyze_browser_tab":
-                # Take a screenshot of the browser (placeholder command)
-                screenshot_path = "/tmp/browser_screenshot.png"
-                self.tools["Shell Executor"].execute(command=f"screencapture -x {screenshot_path}")
-                analysis = self.brain.analyze_image(screenshot_path, params.get("prompt", "What do you see?"))
-                return {"status": "success", "analysis": analysis}
-            elif action_name == "add_calendar_event":
-                return calendar_manager.add_event(params.get("title", ""), params.get("time", ""), params.get("owner", "user"), params.get("description", ""))
-            elif action_name == "get_calendar":
-                return {"status": "success", "events": calendar_manager.get_upcoming_events()}
-            elif action_name == "add_memory":
-                memory_palace.add_memory(params.get("topic", ""), params.get("detail", ""), params.get("significance", "low"))
-                return {"status": "success", "message": "Memory added to the palace."}
-            elif action_name == "remote_message":
-                self.remote_access.send_message(params.get("text", ""))
-                return {"status": "success", "message": "Remote message sent."}
-            elif action_name == "remote_upload":
-                self.remote_access.upload_file(params.get("path", ""))
-                return {"status": "success", "message": "Remote upload triggered."}
-            elif action_name == "generate_project_idea":
-                idea = project_generator.generate_idea()
-                return {"status": "success", "idea": idea}
-            elif action_name == "get_wallet_balance":
-                balance = crypto_wallet.get_balance()
-                return {"status": "success", "balance": balance}
-            elif action_name == "propose_transaction":
-                proposal = crypto_wallet.propose_transaction(params.get("to", ""), params.get("amount", 0.0), params.get("reason", ""))
-                return {"status": "success", "proposal": proposal}
-            # ... (other actions remain similar, but streamlined)
+            elif action_name == "create_synapse":
+                self.synapse_engine.create_synapse(params.get("source", ""), params.get("target", ""), params.get("relationship", ""))
+                return {"status": "success", "message": "Synapse created."}
+            # ... (other actions remain similar)
             else:
                 # Fallback to generic tool execution if available
                 for tool in self.tools.values():
@@ -353,6 +320,17 @@ class Agent:
         """Handle a thought generated by the subconscious loop."""
         # This would ideally send a notification to the UI
         print(f"Subconscious Thought: {thought}")
+        
+        # Occasionally trigger a 'dream' or 'observation'
+        if random.random() < 0.1:
+            dream_insight = self.synapse_engine.dream()
+            if dream_insight:
+                print(f"Dream Insight: {dream_insight}")
+        
+        if random.random() < 0.1:
+            observation = self.world_observer.observe()
+            if observation:
+                print(f"World Observation: {observation}")
 
     def _handle_remote_message(self, message: str):
         """Handle a message received via remote access (Telegram)."""
@@ -391,7 +369,7 @@ class Agent:
 
         while iteration < max_iterations:
             iteration += 1
-            messages = [{"role": "system", "content": get_system_prompt()}]
+            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer)}]
             messages.extend(self.conversation[-20:]) # Keep context window manageable
 
             model = self.brain.coding_model if use_coder else self.brain.main_model

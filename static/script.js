@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const thinkingBar = document.getElementById("thinking-bar");
     const thinkingText = document.getElementById("thinking-text");
     const subconsciousTab = document.getElementById("subconscious-tab");
+    const synapseTab = document.getElementById("synapse-tab"); // New tab for Synapses
 
     let ws = null;
     let reconnectAttempts = 0;
@@ -56,6 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 appendMessage("Council Summary: " + data.text, "timmy-message");
             } else if (data.type === "subconscious_thought") {
                 handleSubconsciousThought(data.text);
+            } else if (data.type === "synapse_update") {
+                handleSynapseUpdate(data.synapse);
             } else if (data.type === "error") {
                 hideThinking();
                 appendMessage(data.text, "error-message");
@@ -142,6 +145,16 @@ document.addEventListener("DOMContentLoaded", () => {
             thoughtElement.innerHTML = formatMessage(thought);
             subconsciousTab.appendChild(thoughtElement);
             subconsciousTab.scrollTop = subconsciousTab.scrollHeight;
+        }
+    }
+
+    function handleSynapseUpdate(synapse) {
+        if (synapseTab) {
+            const synapseElement = document.createElement('div');
+            synapseElement.className = 'synapse-item';
+            synapseElement.innerHTML = `<strong>${synapse.source}</strong> <-> <strong>${synapse.target}</strong> (${synapse.relationship})`;
+            synapseTab.appendChild(synapseElement);
+            synapseTab.scrollTop = synapseTab.scrollHeight;
         }
     }
 
