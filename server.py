@@ -4,13 +4,15 @@ server.py
 FastAPI web server for Timmy AI chat interface.
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 import json
 import os
+import asyncio
+import random
 
 from agent import Agent
 from config import WEB_SERVER_HOST, WEB_SERVER_PORT, PROJECT_ROOT
@@ -41,6 +43,25 @@ async def get_history():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    
+    # Background task for UI updates (vibe, pulse, dreams, etc.)
+    async def ui_updates():
+        try:
+            while True:
+                # Send real-time updates for the new UI
+                await websocket.send_json({"type": "vibe", "text": agent.subconscious.vibe})
+                await websocket.send_json({"type": "pulse", "temp": random.randint(40, 55)})
+                
+                # Occasionally send a dream or synapse update
+                if random.random() < 0.1:
+                    await websocket.send_json({"type": "subconscious_thought", "text": "Reflecting on Ben's M4 Max performance..."})
+                
+                await asyncio.sleep(5)
+        except:
+            pass
+
+    update_task = asyncio.create_task(ui_updates())
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -58,8 +79,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("Client disconnected")
+        update_task.cancel()
     except Exception as e:
         print(f"WebSocket error: {e}")
+        update_task.cancel()
         try:
             await websocket.send_json({"type": "error", "text": str(e)})
         except Exception:

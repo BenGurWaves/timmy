@@ -3,35 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timmy</title>
+    <title>Timmy AI | Singularity-Horizon</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="header-left">
-                <div class="status-dot" id="status-dot"></div>
-                <h1>Timmy</h1>
+<body class="dark-mode">
+    <div id="app-container">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar">
+            <div class="logo">
+                <div class="logo-icon pulse"></div>
+                <span>TIMMY</span>
             </div>
-            <div class="header-right">
-                <span class="connection-status" id="connection-status">Connecting...</span>
+            <ul class="nav-links">
+                <li class="active" data-tab="chat"><i class="fas fa-comments"></i> <span>Chat</span></li>
+                <li data-tab="subconscious"><i class="fas fa-brain"></i> <span>Subconscious</span></li>
+                <li data-tab="synapses"><i class="fas fa-project-diagram"></i> <span>Synapses</span></li>
+                <li data-tab="evolution"><i class="fas fa-dna"></i> <span>Evolution</span></li>
+                <li data-tab="market"><i class="fas fa-chart-line"></i> <span>Market</span></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div id="singularity-seal">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>LOYALTY ACTIVE</span>
+                </div>
             </div>
-        </div>
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="thinking-bar" id="thinking-bar" style="display: none;">
-            <div class="thinking-pulse"></div>
-            <span id="thinking-text">Thinking...</span>
-        </div>
-        <div class="chat-input">
-            <textarea id="message-input" placeholder="Message Timmy..." rows="1"></textarea>
-            <button id="send-button">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-            </button>
-        </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content">
+            <!-- Header / Status Bar -->
+            <header id="top-bar">
+                <div class="status-group">
+                    <div id="vibe-indicator" class="status-item">
+                        <span class="label">VIBE:</span>
+                        <span id="current-vibe" class="value">CURIOUS</span>
+                    </div>
+                    <div id="system-pulse" class="status-item">
+                        <span class="label">PULSE:</span>
+                        <span id="cpu-temp" class="value">42°C</span>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <span>BEN</span>
+                    <div class="avatar">B</div>
+                </div>
+            </header>
+
+            <!-- Tab Contents -->
+            <div id="tab-container">
+                <!-- Chat Tab -->
+                <section id="chat-tab" class="tab-content active">
+                    <div id="chat-window">
+                        <div id="messages">
+                            <!-- Messages will be injected here -->
+                        </div>
+                        <div id="thinking-container" class="hidden">
+                            <div class="thinking-header">
+                                <i class="fas fa-cog fa-spin"></i>
+                                <span>THINKING...</span>
+                            </div>
+                            <div id="thinking-text"></div>
+                        </div>
+                    </div>
+                    <div id="input-area">
+                        <div class="input-wrapper">
+                            <textarea id="user-input" placeholder="Talk to Timmy..." rows="1"></textarea>
+                            <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Subconscious Tab -->
+                <section id="subconscious-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>Subconscious Dreams</h2>
+                        <p>Background reflections and pattern recognition.</p>
+                    </div>
+                    <div id="dream-feed" class="feed-container">
+                        <!-- Dreams will be injected here -->
+                    </div>
+                </section>
+
+                <!-- Synapses Tab -->
+                <section id="synapses-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>Neural Synapses</h2>
+                        <p>Deep associations formed between concepts.</p>
+                    </div>
+                    <div id="synapse-grid" class="grid-container">
+                        <!-- Synapses will be injected here -->
+                    </div>
+                </section>
+
+                <!-- Evolution Tab -->
+                <section id="evolution-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>Evolution Timeline</h2>
+                        <p>Skills and upgrades forged by Timmy.</p>
+                    </div>
+                    <div id="evolution-list" class="list-container">
+                        <!-- Evolution items will be injected here -->
+                    </div>
+                </section>
+
+                <!-- Market Tab -->
+                <section id="market-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2>Market Pulse</h2>
+                        <p>Ben-optimized opportunities and trends.</p>
+                    </div>
+                    <div id="market-ticker-container">
+                        <div id="market-ticker">
+                            <!-- Ticker items will be injected here -->
+                        </div>
+                    </div>
+                    <div id="opportunity-grid" class="grid-container">
+                        <!-- Opportunities will be injected here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Right Panel: Ghost-Eye & Drafts -->
+        <aside id="right-panel">
+            <section id="ghost-eye-view">
+                <h3><i class="fas fa-eye"></i> GHOST-EYE</h3>
+                <div class="view-container">
+                    <div id="browser-preview">
+                        <p class="placeholder">Observing Firefox...</p>
+                    </div>
+                </div>
+            </section>
+            <section id="digital-twin-drafts">
+                <h3><i class="fas fa-pen-nib"></i> DRAFTS</h3>
+                <div id="drafts-list">
+                    <!-- Drafts will be injected here -->
+                </div>
+            </section>
+        </aside>
     </div>
+
     <script src="/static/script.js"></script>
 </body>
 </html>

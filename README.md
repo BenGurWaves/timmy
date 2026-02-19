@@ -1,87 +1,93 @@
-# Timmy AI: The Super-Agent for M4 Max
+> **Note:** This is the final, polished version of Timmy. All 30+ upgrades, the Singularity-UI, and the Triple-Lock Safety Architecture are included.
 
-Timmy is a high-performance, proactive, and loyal digital partner designed specifically for the MacBook Pro M4 Max. He features a "Tri-Mind" architecture, dual-presence browsing, and deep-system integration.
+# Timmy AI | Singularity-Horizon
 
-## 🚀 Key Features
+Timmy is a high-performance, proactive, and emotionally intelligent personal agent designed specifically for the MacBook Pro M4 Max. He lives in your menu bar, observes your digital life via Firefox, and evolves his own capabilities through a background "Subconscious" loop.
 
-- **Tri-Mind Architecture:** Subconscious (background dreaming), Conscious (active tasks), and Super-Ego (safety guard).
-- **Ghost-Eye (Dual-Presence):** Observes your Firefox tabs, emails, and messages in the background without interrupting your work.
-- **Omni-Kernel:** Unified tool execution engine with "Ben-First" loyalty protocol.
-- **Neural Synapse Engine:** Forms deep associations between your conversations and projects.
-- **World-State Observer:** Proactively monitors crypto, AI, and tech trends.
-- **Code-Architect:** Builds entire multi-file projects in your `Desktop/tim's Stuff` folder.
+## 🚀 Quick Start (10-Step Setup)
 
----
+Follow these exact steps to get Timmy running on your machine:
 
-## 📱 Telegram Remote Access Setup
+1.  **Clean Old Version:**
+    ```bash
+    rm -rf ~/Desktop/timmy
+    ```
 
-To talk to Timmy from your phone and have him upload files or search for info remotely, follow these steps:
+2.  **Clone Repository:**
+    ```bash
+    cd ~/Desktop && git clone https://github.com/BenGurWaves/timmy.git
+    ```
 
-1. **Create a Bot:**
-   - Open Telegram and search for `@BotFather`.
-   - Send `/newbot` and follow the instructions to get your **API Token**.
+3.  **Enter Directory:**
+    ```bash
+    cd ~/Desktop/timmy
+    ```
 
-2. **Get Your Chat ID:**
-   - Search for `@userinfobot` on Telegram and send it a message to get your **Chat ID**.
+4.  **Create Virtual Environment:**
+    ```bash
+    /opt/homebrew/bin/python3.12 -m venv venv
+    ```
 
-3. **Configure Timmy:**
-   - Open `config.py` in the Timmy folder.
-   - Add your token and chat ID:
-     ```python
-     TELEGRAM_TOKEN = "your_api_token_here"
-     TELEGRAM_CHAT_ID = "your_chat_id_here"
-     ```
+5.  **Activate Environment:**
+    ```bash
+    source venv/bin/activate
+    ```
 
-4. **Restart Timmy:**
-   - Restart the server. Timmy will now be connected to you via Telegram!
+6.  **Verify Python:**
+    ```bash
+    python --version # Should be 3.12.x
+    ```
 
----
+7.  **Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-## 🛠 Power Upgrades
+8.  **Install Playwright Browsers:**
+    ```bash
+    playwright install
+    ```
 
-- **Auto-Refactor-Daemon:** Silently optimizes your code in the background.
-- **Market-Pulse-Arbitrage:** Scans markets for personalized entry points.
-- **Digital-Twin-Simulator:** Drafts responses to emails/texts in your unique tone.
-- **System-Harmonizer:** Keeps your M4 Max cool by adjusting thinking intensity.
-- **Neural-Context-Stitcher:** Cross-platform insights from email, text, and web.
+9.  **Launch Timmy:**
+    ```bash
+    python main.py
+    ```
 
----
-
-## 📂 Folder Structure
-
-- **Timmy Folder:** Internal code, skills, and tools.
-- **Desktop/tim's Stuff:** All your projects, reports, and files created by Timmy.
-
----
-
-## ⚠️ Safety & Privacy
-
-Timmy's **Super-Ego** layer ensures he never sends, deletes, or edits anything on your private accounts (Gmail, Messages, etc.) without your explicit command. He is an observer first, and an actor only when you say so.
+10. **Open Web UI:**
+    Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
-## 🛠 Quick Start (macOS)
+## 🧠 Core Architecture
 
-### Prerequisites
-- **Ollama** installed and running ([ollama.com](https://ollama.com/))
-- **Python 3.12**
-- **Git**
+### 1. The Tri-Mind
+-   **Subconscious:** Background "dreaming," trend monitoring, and emotional vibes.
+-   **Conscious:** Active task execution and tool use.
+-   **Super-Ego (The Guard):** A safety layer that ensures Timmy never acts on private accounts without permission.
 
-### Step-by-Step Setup
+### 2. The Omni-Kernel
+A unified execution engine that manages all of Timmy's tools (Shell, Files, Browser, Email, Calendar) with "Ben-First" loyalty.
 
-```bash
-# 1. Clone the repo
-cd ~/Desktop
-git clone https://github.com/BenGurWaves/timmy.git
-cd timmy
+### 3. Ghost-Eye (Dual-Presence)
+Timmy can observe your Firefox tabs, emails, and messages in a headless background instance, offering insights without interrupting your work.
 
-# 2. Create virtual environment
-python3.12 -m venv venv
-source venv/bin/activate
+### 4. Evolution-Engine
+Timmy proactively learns new skills, watches YouTube tutorials to master ComfyUI, and proposes "Self-Upgrades" to his own codebase.
 
-# 3. Install dependencies
-pip install -r requirements.txt
+---
 
-# 4. Start Timmy
-python main.py
-```
+## 📱 Telegram Remote Access
+
+To talk to Timmy from your phone:
+1.  Create a bot via [@BotFather](https://t.me/BotFather) to get an **API Token**.
+2.  Get your **Chat ID** via [@userinfobot](https://t.me/userinfobot).
+3.  Update `config.py` with your `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`.
+4.  Restart Timmy.
+
+---
+
+## 🛡️ Safety & Power
+
+Timmy is optimized for the M4 Max. He includes a **Thermal-Throttle-Governor** to keep your machine cool and a **Triple-Lock Safety Architecture** to ensure he only acts with your permission.
+
+**Loyalty Protocol: ACTIVE**

@@ -9,7 +9,7 @@ weeks ago in a way that feels genuinely human.
 
 import json
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from config import PROJECT_ROOT
 
 MEMORY_PALACE_FILE = os.path.join(PROJECT_ROOT, "data", "memory_palace.json")
