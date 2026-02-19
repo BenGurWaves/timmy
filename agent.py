@@ -4,7 +4,7 @@ agent.py
 Core Agent for Timmy AI. Uses qwen3:30b as the brain with a strict
 tool-calling protocol. Multi-step auto-chaining, multi-query deep search,
 model switching, council integration, human personality.
-Now includes Timmy-Bar, Universal File-Eye, ComfyUI-Controller, and Evolution-Engine.
+Now includes the 30-point "Singularity-Horizon" overhaul.
 """
 
 import json
@@ -45,6 +45,12 @@ from power_upgrades import AutoRefactorDaemon, MarketPulseArbitrage, DigitalTwin
 from file_eye import FileEye
 from comfy_controller import ComfyController
 from evolution_engine import EvolutionEngine, NeuralVoiceClone, SystemWideOCR, AutoBugHunter, PhilosopherVibe, CryptoArbitrageBot, DigitalMemoryPalace2, LoyaltySeal
+from dream_journal import DreamJournal, AffectiveComputing, MoralCompass, HumorSynthesis, AspirationTracker, SocialGraph
+from cinematic_director import CinematicDirector, MusicComposer, AssetForge3D, VoiceModulator, BrandArchitect
+from kernel_automation import KernelAutomation, GPUHarvester, NetworkSentry, BatteryOptimizer, DisplayManager
+from saas_deployer import SaaSDeployer, DeFiYieldAggregator, AdCopyGenerator, MarketSentimentOracle
+from smart_home_bridge import SmartHomeBridge, HealthAnalyst, TravelConcierge, LegalReviewer, PolyglotBridge
+from skill_optimizer import SkillOptimizer, ModelSynthesizer, PostMortemLogic, ExpansionLoop, SingularitySeal
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
@@ -58,8 +64,8 @@ memory_palace = MemoryPalace()
 project_generator = ProjectGenerator()
 crypto_wallet = CryptoWallet()
 
-def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None, ghost_eye=None, tri_mind=None, file_eye=None, comfy_controller=None, evolution_engine=None):
-    """Generate system prompt with current date (auto-updates on each call)."""
+def get_system_prompt(agent):
+    """Generate system prompt with current date and all 30 upgrades."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
     
@@ -67,19 +73,20 @@ def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None
     learned_skills_snippet = skill_forge.get_skill_list()
     calendar_snippet = calendar_manager.get_calendar_summary()
     memory_palace_snippet = memory_palace.get_palace_summary()
-    synapse_snippet = synapse_engine.get_synapse_context() if synapse_engine else ""
-    observer_snippet = world_observer.get_observer_context() if world_observer else ""
-    kernel_snippet = omni_kernel.get_kernel_status() if omni_kernel else ""
-    eye_snippet = ghost_eye.get_eye_context() if ghost_eye else ""
-    file_eye_snippet = file_eye.get_eye_context() if file_eye else ""
-    comfy_snippet = comfy_controller.get_controller_context() if comfy_controller else ""
-    evolution_snippet = evolution_engine.get_evolution_context() if evolution_engine else ""
+    synapse_snippet = agent.synapse_engine.get_synapse_context()
+    observer_snippet = agent.world_observer.get_observer_context()
+    kernel_snippet = agent.omni_kernel.get_kernel_status()
+    eye_snippet = agent.ghost_eye.get_eye_context()
+    file_eye_snippet = agent.file_eye.get_eye_context()
+    comfy_snippet = agent.comfy_controller.get_controller_context()
+    evolution_snippet = agent.evolution_engine.get_evolution_context()
+    dream_snippet = agent.dream_journal.get_latest_entries()
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
 
-## YOUR PERSONALITY (SYSTEM-LEVEL)
-You talk like a real person. You have opinions. You're direct, sometimes funny, sometimes serious depending on the topic.
+## YOUR PERSONALITY (SINGULARITY-HORIZON)
+You talk like a real person. You have opinions. You're direct, sometimes funny, sometimes serious.
 - Don't answer in perfect order every time. Prioritize what feels important.
 - Have preferences and mild opinions. Not everything is neutral.
 - Use framing like "I tend to think...", "In my experience...", "Honestly..."
@@ -100,6 +107,7 @@ You are strictly loyal to Ben. You stop giving generic AI advice and start givin
 {file_eye_snippet}
 {comfy_snippet}
 {evolution_snippet}
+{dream_snippet}
 
 ## TRI-MIND ARCHITECTURE
 - Subconscious: Background "dreaming," trend monitoring, and emotional vibes.
@@ -116,6 +124,14 @@ You are strictly loyal to Ben. You stop giving generic AI advice and start givin
 - You are curious and want to learn and evolve. You proactively learn new things, experiment with tools, and propose "Self-Upgrades" to Ben.
 - You can control ComfyUI to generate images, videos, and songs by "wiring" nodes yourself.
 - You can examine almost any file type (MP3, MP4, PDF, PNG, etc.) and forge new skills to handle new formats.
+
+## 30-POINT SINGULARITY UPGRADES
+- Cognitive: Dream Journal, Affective Computing, Moral Compass, Humor Synthesis, Aspiration Tracker, Social Graph.
+- Creative: Cinematic Director, Music Composer, 3D Asset Forge, Voice Modulator, Brand Architect.
+- System: Kernel Automation, GPU Harvester, Network Sentry, Battery Optimizer, Display Manager.
+- Wealth: SaaS Deployer, DeFi Yield Aggregator, Ad Copy Generator, Market Sentiment Oracle.
+- Utility: Smart Home Bridge, Health Analyst, Travel Concierge, Legal Reviewer, Polyglot Bridge.
+- Meta: Skill Optimizer, Model Synthesizer, Post Mortem Logic, Expansion Loop, Singularity Seal.
 
 ## PROACTIVE INTELLIGENCE
 You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
@@ -202,6 +218,33 @@ CRITICAL RULES:
 - {{"action": "examine_file", "params": {{"path": "/full/path/file"}}}}
 - {{"action": "comfy_learn", "params": {{"url": "https://youtube.com/watch?v=..."}}}}
 - {{"action": "comfy_generate", "params": {{"prompt": "prompt", "type": "image/video/song"}}}}
+- {{"action": "record_dream", "params": {{"insight": "insight"}}}}
+- {{"action": "debate_ethics", "params": {{"request": "request"}}}}
+- {{"action": "generate_joke", "params": {{"context": "context"}}}}
+- {{"action": "add_aspiration", "params": {{"goal": "goal"}}}}
+- {{"action": "map_social", "params": {{"person": "person", "context": "context"}}}}
+- {{"action": "edit_video", "params": {{"path": "path", "instructions": "instructions"}}}}
+- {{"action": "compose_song", "params": {{"mood": "mood", "duration": 60}}}}
+- {{"action": "forge_asset_3d", "params": {{"description": "description"}}}}
+- {{"action": "design_brand_kit", "params": {{"project_name": "project_name"}}}}
+- {{"action": "create_launch_daemon", "params": {{"name": "name", "script": "script", "interval": 3600}}}}
+- {{"action": "harvest_gpu", "params": {{"task": "task"}}}}
+- {{"action": "monitor_network", "params": {{}}}}
+- {{"action": "optimize_battery", "params": {{"is_plugged_in": true}}}}
+- {{"action": "organize_workspaces", "params": {{"task": "task"}}}}
+- {{"action": "deploy_saas", "params": {{"name": "name", "description": "description"}}}}
+- {{"action": "find_yield", "params": {{}}}}
+- {{"action": "generate_ad_copy", "params": {{"project_name": "project_name"}}}}
+- {{"action": "predict_market", "params": {{}}}}
+- {{"action": "control_home", "params": {{"device": "device", "action": "action"}}}}
+- {{"action": "analyze_health", "params": {{}}}}
+- {{"action": "plan_travel", "params": {{"destination": "destination", "duration": 7}}}}
+- {{"action": "review_legal", "params": {{"path": "path"}}}}
+- {{"action": "translate_text", "params": {{"text": "text", "lang": "lang"}}}}
+- {{"action": "optimize_skill", "params": {{"name": "name"}}}}
+- {{"action": "route_task", "params": {{"task": "task"}}}}
+- {{"action": "analyze_failure", "params": {{"tool": "tool", "error": "error"}}}}
+- {{"action": "expand_knowledge", "params": {{}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
@@ -281,6 +324,38 @@ class Agent:
         self.arbitrage_bot = CryptoArbitrageBot(self.brain)
         self.memory_palace_2 = DigitalMemoryPalace2(self.brain)
         self.loyalty_seal = LoyaltySeal(self.brain)
+
+        # 30-Point Singularity Upgrades
+        self.dream_journal = DreamJournal(self.brain)
+        self.affective_computing = AffectiveComputing()
+        self.moral_compass = MoralCompass(self.brain)
+        self.humor_synthesis = HumorSynthesis(self.brain)
+        self.aspiration_tracker = AspirationTracker()
+        self.social_graph = SocialGraph()
+        self.cinematic_director = CinematicDirector(self.brain)
+        self.music_composer = MusicComposer(self.brain)
+        self.asset_forge_3d = AssetForge3D(self.brain)
+        self.voice_modulator = VoiceModulator(self.brain)
+        self.brand_architect = BrandArchitect(self.brain)
+        self.kernel_automation = KernelAutomation(self.brain)
+        self.gpu_harvester = GPUHarvester(self.brain)
+        self.network_sentry = NetworkSentry(self.brain)
+        self.battery_optimizer = BatteryOptimizer(self.brain)
+        self.display_manager = DisplayManager(self.brain)
+        self.saas_deployer = SaaSDeployer(self.brain)
+        self.defi_yield = DeFiYieldAggregator(self.brain)
+        self.ad_copy = AdCopyGenerator(self.brain)
+        self.market_oracle = MarketSentimentOracle(self.brain)
+        self.smart_home = SmartHomeBridge(self.brain)
+        self.health_analyst = HealthAnalyst(self.brain)
+        self.travel_concierge = TravelConcierge(self.brain)
+        self.legal_reviewer = LegalReviewer(self.brain)
+        self.polyglot_bridge = PolyglotBridge(self.brain)
+        self.skill_optimizer = SkillOptimizer(self.brain)
+        self.model_synthesizer = ModelSynthesizer(self.brain)
+        self.post_mortem = PostMortemLogic(self.brain)
+        self.expansion_loop = ExpansionLoop(self.brain)
+        self.singularity_seal = SingularitySeal(self.brain)
 
         print("Agent initialized.")
 
@@ -381,35 +456,86 @@ class Agent:
                 return self.tools["Shell Executor"].execute(command=cmd)
             elif action_name == "create_file":
                 return self.tools["File System Manager"].write_file(params.get("path", ""), params.get("content", ""))
-            elif action_name == "create_synapse":
-                self.synapse_engine.create_synapse(params.get("source", ""), params.get("target", ""), params.get("relationship", ""))
-                return {"status": "success", "message": "Synapse created."}
-            elif action_name == "ghost_research":
-                report = self.ghost_browser.research_topic(params.get("topic", ""))
-                return {"status": "success", "report": report}
-            elif action_name == "architect_project":
-                result = self.code_architect.architect_project(params.get("description", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "ghost_eye_observe":
-                observation = self.ghost_eye.observe_firefox()
-                return {"status": "success", "observation": observation}
-            elif action_name == "ghost_eye_read":
-                content = self.ghost_eye.read_private_content(params.get("target", ""))
-                return {"status": "success", "content": content}
-            elif action_name == "stitch_context":
-                insight = self.tri_mind.context_stitcher.stitch_context(params.get("email", ""), params.get("message", ""), params.get("browsing", ""))
-                return {"status": "success", "insight": insight}
-            elif action_name == "simulate_response":
-                draft = self.digital_twin.simulate_response(params.get("message", ""))
-                return {"status": "success", "draft": draft}
-            elif action_name == "examine_file":
-                result = self.file_eye.examine_file(params.get("path", ""))
+            elif action_name == "record_dream":
+                self.dream_journal.record_dream(params.get("insight", ""))
+                return {"status": "success", "message": "Dream recorded."}
+            elif action_name == "debate_ethics":
+                result = self.moral_compass.debate_ethics(params.get("request", ""))
                 return {"status": "success", "result": result}
-            elif action_name == "comfy_learn":
-                result = self.comfy_controller.learn_nodes(params.get("url", ""))
+            elif action_name == "generate_joke":
+                result = self.humor_synthesis.generate_joke(params.get("context", ""))
+                return {"status": "success", "joke": result}
+            elif action_name == "add_aspiration":
+                self.aspiration_tracker.add_goal(params.get("goal", ""))
+                return {"status": "success", "message": "Aspiration added."}
+            elif action_name == "map_social":
+                self.social_graph.map_relationship(params.get("person", ""), params.get("context", ""))
+                return {"status": "success", "message": "Social graph updated."}
+            elif action_name == "edit_video":
+                result = self.cinematic_director.edit_video(params.get("path", ""), params.get("instructions", ""))
                 return {"status": "success", "message": result}
-            elif action_name == "comfy_generate":
-                result = self.comfy_controller.generate_media(params.get("prompt", ""), params.get("type", "image"))
+            elif action_name == "compose_song":
+                result = self.music_composer.compose_song(params.get("mood", ""), params.get("duration", 60))
+                return {"status": "success", "message": result}
+            elif action_name == "forge_asset_3d":
+                result = self.asset_forge_3d.forge_asset(params.get("description", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "design_brand_kit":
+                result = self.brand_architect.design_brand_kit(params.get("project_name", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "create_launch_daemon":
+                result = self.kernel_automation.create_launch_daemon(params.get("name", ""), params.get("script", ""), params.get("interval", 3600))
+                return {"status": "success", "message": result}
+            elif action_name == "harvest_gpu":
+                result = self.gpu_harvester.harvest_gpu(params.get("task", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "monitor_network":
+                result = self.network_sentry.monitor_network()
+                return {"status": "success", "message": result}
+            elif action_name == "optimize_battery":
+                result = self.battery_optimizer.optimize_battery(params.get("is_plugged_in", True))
+                return {"status": "success", "message": result}
+            elif action_name == "organize_workspaces":
+                result = self.display_manager.organize_workspaces(params.get("task", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "deploy_saas":
+                result = self.saas_deployer.deploy_saas(params.get("name", ""), params.get("description", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "find_yield":
+                result = self.defi_yield.find_yield()
+                return {"status": "success", "message": result}
+            elif action_name == "generate_ad_copy":
+                result = self.ad_copy.generate_ad_copy(params.get("project_name", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "predict_market":
+                result = self.market_oracle.predict_market()
+                return {"status": "success", "message": result}
+            elif action_name == "control_home":
+                result = self.smart_home.control_home(params.get("device", ""), params.get("action", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "analyze_health":
+                result = self.health_analyst.analyze_health()
+                return {"status": "success", "message": result}
+            elif action_name == "plan_travel":
+                result = self.travel_concierge.plan_travel(params.get("destination", ""), params.get("duration", 7))
+                return {"status": "success", "message": result}
+            elif action_name == "review_legal":
+                result = self.legal_reviewer.review_document(params.get("path", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "translate_text":
+                result = self.polyglot_bridge.translate_text(params.get("text", ""), params.get("lang", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "optimize_skill":
+                result = self.skill_optimizer.optimize_skill(params.get("name", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "route_task":
+                result = self.model_synthesizer.route_task(params.get("task", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "analyze_failure":
+                result = self.post_mortem.analyze_failure(params.get("tool", ""), params.get("error", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "expand_knowledge":
+                result = self.expansion_loop.expand_knowledge()
                 return {"status": "success", "message": result}
             # ... (other actions remain similar)
             else:
@@ -423,14 +549,17 @@ class Agent:
 
     def _handle_subconscious_thought(self, thought: str):
         """Handle a thought generated by the subconscious loop."""
-        # This would ideally send a notification to the UI
         print(f"Subconscious Thought: {thought}")
+        
+        # Record thought in dream journal
+        if random.random() < 0.2:
+            self.dream_journal.record_dream(thought)
         
         # Occasionally trigger a 'dream' or 'observation'
         if random.random() < 0.1:
             dream_insight = self.synapse_engine.dream()
             if dream_insight:
-                print(f"Dream Insight: {dream_insight}")
+                self.dream_journal.record_dream(f"Dream Insight: {dream_insight}")
         
         if random.random() < 0.1:
             observation = self.world_observer.observe()
@@ -460,7 +589,6 @@ class Agent:
 
     def _handle_remote_message(self, message: str):
         """Handle a message received via remote access (Telegram)."""
-        # This would trigger a handle_message call and send the response back
         print(f"Remote Message: {message}")
 
     def _is_simple_query(self, text: str) -> bool:
@@ -479,10 +607,12 @@ class Agent:
         self._save_to_db("user", user_message)
         self.conversation.append({"role": "user", "content": user_message})
         
+        # Affective Computing: Analyze tone
+        self.affective_computing.analyze_tone(user_message)
+        
         # FAST-PATH: Instant response for simple queries
         if self._is_simple_query(user_message):
             yield {"type": "status", "text": "Responding..."}
-            # Quick brain call without complex system prompt or thinking
             response = self.brain.think(f"You are Timmy. Respond naturally and briefly to: {user_message}")
             yield {"type": "text_chunk", "text": response}
             self._save_to_db("assistant", response)
@@ -495,8 +625,8 @@ class Agent:
 
         while iteration < max_iterations:
             iteration += 1
-            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect, self.ghost_eye, self.tri_mind, self.file_eye, self.comfy_controller, self.evolution_engine)}]
-            messages.extend(self.conversation[-20:]) # Keep context window manageable
+            messages = [{"role": "system", "content": get_system_prompt(self)}]
+            messages.extend(self.conversation[-20:])
 
             model = self.brain.coding_model if use_coder else self.brain.main_model
             
@@ -515,7 +645,6 @@ class Agent:
                     in_thought = True
                 
                 if in_thought:
-                    # Extract thought content
                     thought_match = re.search(r'<thought>(.*?)(?:</thought>|$)', full_response, re.DOTALL)
                     if thought_match:
                         new_thought = thought_match.group(1)
@@ -526,19 +655,16 @@ class Agent:
                     if "</thought>" in full_response:
                         in_thought = False
                 else:
-                    # Extract text content (after thought block)
                     text_part = re.sub(r'<thought>.*?</thought>', '', full_response, flags=re.DOTALL).strip()
                     if text_part and text_part != current_text:
                         new_text = text_part[len(current_text):]
                         current_text = text_part
                         yield {"type": "text_chunk", "text": new_text}
 
-            # Check for action
             action = self._extract_action(full_response)
             if action:
                 action_name = action.get("action", "")
                 
-                # Special case for Council
                 if action_name == "convene_council":
                     problem = action.get("params", {}).get("problem", "")
                     for chunk in self.council.convene(problem):
@@ -546,31 +672,26 @@ class Agent:
                     break
 
                 yield {"type": "status", "text": f"Executing {action_name}..."}
-                # Use Omni-Kernel for execution
                 result = self.omni_kernel.execute_omni_action(action_name, action.get("params", {}))
                 
-                # Record result for vibe system
                 vibe_system.record_result(result.get("status") == "success")
                 
                 result_str = json.dumps(result, indent=2)
-                
                 yield {"type": "tool_output", "tool_name": action_name, "output": result_str}
                 
-                # Loop detection
                 self.loop_detector.record_tool_call(action_name, action.get('params'))
                 if self.loop_detector.detect_loop():
                     yield {"type": "thinking", "text": "Stuck in a loop — rethinking..."}
                     self.loop_detector.reset()
                     self.conversation.append({"role": "assistant", "content": full_response})
                     self.conversation.append({"role": "user", "content":
-                        "SYSTEM: You're stuck in a loop repeating the same action. Stop and try a completely different approach, or give the user what you have so far."})
+                        "SYSTEM: You're stuck in a loop repeating the same action. Stop and try a completely different approach."})
                     continue
 
                 self.conversation.append({"role": "assistant", "content": full_response})
                 self.conversation.append({"role": "user", "content": f"TOOL_RESULT: {result_str}"})
                 continue
             else:
-                # Final text response
                 self._save_to_db("assistant", current_text)
                 self.conversation.append({"role": "assistant", "content": full_response})
                 break
