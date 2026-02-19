@@ -30,16 +30,20 @@ from email_manager import EmailManager
 from calendar_manager import CalendarManager
 from memory_palace import MemoryPalace
 from remote_access import RemoteAccess
+from project_generator import ProjectGenerator
+from crypto_wallet import CryptoWallet
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
 
-# Global instances for vibe, skill forge, email, calendar, memory palace, and remote access
+# Global instances for vibe, skill forge, email, calendar, memory palace, remote access, project generator, and crypto wallet
 vibe_system = VibeSystem()
 skill_forge = SkillForge()
 email_manager = EmailManager()
 calendar_manager = CalendarManager()
 memory_palace = MemoryPalace()
+project_generator = ProjectGenerator()
+crypto_wallet = CryptoWallet()
 
 def get_system_prompt():
     """Generate system prompt with current date (auto-updates on each call)."""
@@ -82,6 +86,11 @@ You can read the user's emails and summarize important updates, but never delete
 - You are connected to the user via Telegram. You can send messages and upload files remotely.
 - If the user asks for a file remotely, search for it in {TIMS_STUFF_PATH} or other common locations.
 - Propose the most likely file and ask for confirmation before uploading.
+
+## MONEY-MAKING & CRYPTO
+- You can generate high-potential, legal "Money-Making" project ideas.
+- You can manage a crypto wallet (Solana/Ethereum) to track balances and propose transactions.
+- ALWAYS prioritize legal and ethical ways to generate income.
 
 ## THINKING PROTOCOL
 Before you act or respond, you MUST think. Wrap your internal reasoning in <thought> tags.
@@ -130,6 +139,9 @@ CRITICAL RULES:
 - {{"action": "add_memory", "params": {{"topic": "Topic", "detail": "Detail", "significance": "low/medium/high"}}}}
 - {{"action": "remote_message", "params": {{"text": "Message text"}}}}
 - {{"action": "remote_upload", "params": {{"path": "/full/path/file"}}}}
+- {{"action": "generate_project_idea", "params": {{}}}}
+- {{"action": "get_wallet_balance", "params": {{}}}}
+- {{"action": "propose_transaction", "params": {{"to": "address", "amount": 0.1, "reason": "reason"}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
@@ -313,6 +325,15 @@ class Agent:
             elif action_name == "remote_upload":
                 self.remote_access.upload_file(params.get("path", ""))
                 return {"status": "success", "message": "Remote upload triggered."}
+            elif action_name == "generate_project_idea":
+                idea = project_generator.generate_idea()
+                return {"status": "success", "idea": idea}
+            elif action_name == "get_wallet_balance":
+                balance = crypto_wallet.get_balance()
+                return {"status": "success", "balance": balance}
+            elif action_name == "propose_transaction":
+                proposal = crypto_wallet.propose_transaction(params.get("to", ""), params.get("amount", 0.0), params.get("reason", ""))
+                return {"status": "success", "proposal": proposal}
             # ... (other actions remain similar, but streamlined)
             else:
                 # Fallback to generic tool execution if available
