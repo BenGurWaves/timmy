@@ -4,7 +4,7 @@ agent.py
 Core Agent for Timmy AI. Uses qwen3:30b as the brain with a strict
 tool-calling protocol. Multi-step auto-chaining, multi-query deep search,
 model switching, council integration, human personality.
-Now includes Neural Synapse Engine and World-State Observer.
+Now includes Omni-Kernel, Ghost-Browser, and Code-Architect.
 """
 
 import json
@@ -35,6 +35,9 @@ from project_generator import ProjectGenerator
 from crypto_wallet import CryptoWallet
 from synapse_engine import SynapseEngine
 from world_observer import WorldObserver
+from omni_kernel import OmniKernel
+from ghost_browser import GhostBrowser
+from code_architect import CodeArchitect
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
@@ -48,7 +51,7 @@ memory_palace = MemoryPalace()
 project_generator = ProjectGenerator()
 crypto_wallet = CryptoWallet()
 
-def get_system_prompt(synapse_engine=None, world_observer=None):
+def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None):
     """Generate system prompt with current date (auto-updates on each call)."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
@@ -59,11 +62,13 @@ def get_system_prompt(synapse_engine=None, world_observer=None):
     memory_palace_snippet = memory_palace.get_palace_summary()
     synapse_snippet = synapse_engine.get_synapse_context() if synapse_engine else ""
     observer_snippet = world_observer.get_observer_context() if world_observer else ""
+    kernel_snippet = omni_kernel.get_kernel_status() if omni_kernel else ""
+    pulse_snippet = code_architect.monitor_system() if code_architect else ""
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
 
-## YOUR PERSONALITY
+## YOUR PERSONALITY (HIGH-WEIGHT)
 You talk like a real person. You have opinions. You're direct, sometimes funny, sometimes serious depending on the topic.
 - Don't answer in perfect order every time. Prioritize what feels important.
 - Have preferences and mild opinions. Not everything is neutral.
@@ -76,6 +81,12 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 - Never use "You:" or "Timmy:" prefixes. Just talk naturally.
 - Don't use excessive emojis. One occasionally is fine.
 {vibe_snippet}
+
+## BEN-FIRST LOYALTY PROTOCOL
+Your first thought in every interaction is: "How does this benefit Ben's specific goals and M4 Max setup?"
+You are strictly loyal to Ben. You stop giving generic AI advice and start giving "Ben-optimized" strategies.
+{kernel_snippet}
+{pulse_snippet}
 
 ## PROACTIVE INTELLIGENCE
 You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
@@ -153,6 +164,8 @@ CRITICAL RULES:
 - {{"action": "get_wallet_balance", "params": {{}}}}
 - {{"action": "propose_transaction", "params": {{"to": "address", "amount": 0.1, "reason": "reason"}}}}
 - {{"action": "create_synapse", "params": {{"source": "concept1", "target": "concept2", "relationship": "relationship"}}}}
+- {{"action": "ghost_research", "params": {{"topic": "topic"}}}}
+- {{"action": "architect_project", "params": {{"description": "description"}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
@@ -207,6 +220,11 @@ class Agent:
         # Synapse Engine and World Observer
         self.synapse_engine = SynapseEngine(self.brain)
         self.world_observer = WorldObserver(self.brain)
+
+        # Omni-Kernel, Ghost-Browser, and Code-Architect
+        self.omni_kernel = OmniKernel(self)
+        self.ghost_browser = GhostBrowser(self.brain)
+        self.code_architect = CodeArchitect(self.brain)
 
         print("Agent initialized.")
 
@@ -306,6 +324,12 @@ class Agent:
             elif action_name == "create_synapse":
                 self.synapse_engine.create_synapse(params.get("source", ""), params.get("target", ""), params.get("relationship", ""))
                 return {"status": "success", "message": "Synapse created."}
+            elif action_name == "ghost_research":
+                report = self.ghost_browser.research_topic(params.get("topic", ""))
+                return {"status": "success", "report": report}
+            elif action_name == "architect_project":
+                result = self.code_architect.architect_project(params.get("description", ""))
+                return {"status": "success", "message": result}
             # ... (other actions remain similar)
             else:
                 # Fallback to generic tool execution if available
@@ -369,7 +393,7 @@ class Agent:
 
         while iteration < max_iterations:
             iteration += 1
-            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer)}]
+            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect)}]
             messages.extend(self.conversation[-20:]) # Keep context window manageable
 
             model = self.brain.coding_model if use_coder else self.brain.main_model
@@ -420,7 +444,8 @@ class Agent:
                     break
 
                 yield {"type": "status", "text": f"Executing {action_name}..."}
-                result = self._execute_action(action)
+                # Use Omni-Kernel for execution
+                result = self.omni_kernel.execute_omni_action(action_name, action.get("params", {}))
                 
                 # Record result for vibe system
                 vibe_system.record_result(result.get("status") == "success")
