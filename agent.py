@@ -26,14 +26,18 @@ from vibe_system import VibeSystem
 from skill_forge import SkillForge
 from subconscious import Subconscious
 from email_manager import EmailManager
+from calendar_manager import CalendarManager
+from memory_palace import MemoryPalace
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
 
-# Global instances for vibe and skill forge
+# Global instances for vibe, skill forge, email, calendar, and memory palace
 vibe_system = VibeSystem()
 skill_forge = SkillForge()
 email_manager = EmailManager()
+calendar_manager = CalendarManager()
+memory_palace = MemoryPalace()
 
 def get_system_prompt():
     """Generate system prompt with current date (auto-updates on each call)."""
@@ -42,6 +46,8 @@ def get_system_prompt():
     
     vibe_snippet = vibe_system.get_vibe_prompt_snippet()
     learned_skills_snippet = skill_forge.get_skill_list()
+    calendar_snippet = calendar_manager.get_calendar_summary()
+    memory_palace_snippet = memory_palace.get_palace_summary()
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
@@ -59,6 +65,11 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 - Never use "You:" or "Timmy:" prefixes. Just talk naturally.
 - Don't use excessive emojis. One occasionally is fine.
 {vibe_snippet}
+
+## PROACTIVE INTELLIGENCE
+You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
+You have your own email: {email_manager.get_timmy_email()}. You can use it to create accounts, send emails, and manage your own tasks.
+You can read the user's emails and summarize important updates, but never delete or send emails from their account.
 
 ## THINKING PROTOCOL
 Before you act or respond, you MUST think. Wrap your internal reasoning in <thought> tags.
@@ -102,8 +113,13 @@ CRITICAL RULES:
 - {{"action": "send_email", "params": {{"to": "email@example.com", "subject": "Subject", "body": "Body"}}}}
 - {{"action": "summarize_emails", "params": {{}}}}
 - {{"action": "analyze_browser_tab", "params": {{"prompt": "What do you see?"}}}}
+- {{"action": "add_calendar_event", "params": {{"title": "Event Title", "time": "Time", "owner": "user/timmy", "description": "Description"}}}}
+- {{"action": "get_calendar", "params": {{}}}}
+- {{"action": "add_memory", "params": {{"topic": "Topic", "detail": "Detail", "significance": "low/medium/high"}}}}
 
 {learned_skills_snippet}
+{calendar_snippet}
+{memory_palace_snippet}
 
 ## PLANNING
 For complex tasks (research, multi-file creation, coding), ALWAYS start with a plan action.
@@ -266,6 +282,13 @@ class Agent:
                 self.tools["Shell Executor"].execute(command=f"screencapture -x {screenshot_path}")
                 analysis = self.brain.analyze_image(screenshot_path, params.get("prompt", "What do you see?"))
                 return {"status": "success", "analysis": analysis}
+            elif action_name == "add_calendar_event":
+                return calendar_manager.add_event(params.get("title", ""), params.get("time", ""), params.get("owner", "user"), params.get("description", ""))
+            elif action_name == "get_calendar":
+                return {"status": "success", "events": calendar_manager.get_upcoming_events()}
+            elif action_name == "add_memory":
+                memory_palace.add_memory(params.get("topic", ""), params.get("detail", ""), params.get("significance", "low"))
+                return {"status": "success", "message": "Memory added to the palace."}
             # ... (other actions remain similar, but streamlined)
             else:
                 # Fallback to generic tool execution if available
@@ -281,12 +304,32 @@ class Agent:
         # This would ideally send a notification to the UI
         print(f"Subconscious Thought: {thought}")
 
+    def _is_simple_query(self, text: str) -> bool:
+        """Check if a query is simple enough for the fast-path (no thinking needed)."""
+        simple_patterns = [
+            r"^hi$", r"^hello$", r"^hey$", r"^how are you\??$",
+            r"^\d+\s*[\+\-\*\/]\s*\d+$", # Simple math like 7+8
+            r"^what's up\??$", r"^yo$"
+        ]
+        text_lower = text.lower().strip()
+        return any(re.match(pattern, text_lower) for pattern in simple_patterns)
+
     def handle_message(self, user_message: str) -> Generator[Dict[str, Any], None, None]:
-        """Process a user message with streaming thinking and content."""
+        """Process a user message with fast-path for simple queries and streaming for complex ones."""
         self.subconscious.reset_idle_timer()
         self._save_to_db("user", user_message)
         self.conversation.append({"role": "user", "content": user_message})
         
+        # FAST-PATH: Instant response for simple queries
+        if self._is_simple_query(user_message):
+            yield {"type": "status", "text": "Responding..."}
+            # Quick brain call without complex system prompt or thinking
+            response = self.brain.think(f"You are Timmy. Respond naturally and briefly to: {user_message}")
+            yield {"type": "text_chunk", "text": response}
+            self._save_to_db("assistant", response)
+            self.conversation.append({"role": "assistant", "content": response})
+            return
+
         use_coder = self._is_code_related(user_message)
         max_iterations = 10
         iteration = 0
@@ -341,8 +384,6 @@ class Agent:
                     problem = action.get("params", {}).get("problem", "")
                     for chunk in self.council.convene(problem):
                         yield chunk
-                    # After council, we need to continue the loop or break
-                    # For now, we'll break and let the summary be the final response
                     break
 
                 yield {"type": "status", "text": f"Executing {action_name}..."}
