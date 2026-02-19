@@ -1,106 +1,87 @@
-# Timmy AI Agent
+# Timmy AI: The Super-Agent for M4 Max
 
-Timmy is a local AI agent with full control over your macOS system. He uses Ollama models as his brain, has a web-based chat interface, persistent memory, a learning pipeline, and a Council system for complex problems.
+Timmy is a high-performance, proactive, and loyal digital partner designed specifically for the MacBook Pro M4 Max. He features a "Tri-Mind" architecture, dual-presence browsing, and deep-system integration.
 
-## Features
+## 🚀 Key Features
 
-- **Multi-Model Brain**: qwen3:30b for thinking, qwen3-coder:30b for coding, auto-switches based on task
-- **Council System**: Queries all local models for complex problems, synthesizes the best answer
-- **Full Computer Control**: Shell, file system, browser, web search, app control, Apple Notes
-- **Deep Search**: Multiple searches with different keywords for comprehensive research
-- **Smart Loop Detection**: Detects when stuck and rethinks instead of repeating
-- **Persistent Memory**: ChromaDB for semantic search + JSON for chat history, all local
-- **Learning Pipeline**: Learn from YouTube transcripts and web pages
-- **Human Personality**: Talks like a real person, not a chatbot
+- **Tri-Mind Architecture:** Subconscious (background dreaming), Conscious (active tasks), and Super-Ego (safety guard).
+- **Ghost-Eye (Dual-Presence):** Observes your Firefox tabs, emails, and messages in the background without interrupting your work.
+- **Omni-Kernel:** Unified tool execution engine with "Ben-First" loyalty protocol.
+- **Neural Synapse Engine:** Forms deep associations between your conversations and projects.
+- **World-State Observer:** Proactively monitors crypto, AI, and tech trends.
+- **Code-Architect:** Builds entire multi-file projects in your `Desktop/tim's Stuff` folder.
 
-## Quick Start (macOS)
+---
+
+## 📱 Telegram Remote Access Setup
+
+To talk to Timmy from your phone and have him upload files or search for info remotely, follow these steps:
+
+1. **Create a Bot:**
+   - Open Telegram and search for `@BotFather`.
+   - Send `/newbot` and follow the instructions to get your **API Token**.
+
+2. **Get Your Chat ID:**
+   - Search for `@userinfobot` on Telegram and send it a message to get your **Chat ID**.
+
+3. **Configure Timmy:**
+   - Open `config.py` in the Timmy folder.
+   - Add your token and chat ID:
+     ```python
+     TELEGRAM_TOKEN = "your_api_token_here"
+     TELEGRAM_CHAT_ID = "your_chat_id_here"
+     ```
+
+4. **Restart Timmy:**
+   - Restart the server. Timmy will now be connected to you via Telegram!
+
+---
+
+## 🛠 Power Upgrades
+
+- **Auto-Refactor-Daemon:** Silently optimizes your code in the background.
+- **Market-Pulse-Arbitrage:** Scans markets for personalized entry points.
+- **Digital-Twin-Simulator:** Drafts responses to emails/texts in your unique tone.
+- **System-Harmonizer:** Keeps your M4 Max cool by adjusting thinking intensity.
+- **Neural-Context-Stitcher:** Cross-platform insights from email, text, and web.
+
+---
+
+## 📂 Folder Structure
+
+- **Timmy Folder:** Internal code, skills, and tools.
+- **Desktop/tim's Stuff:** All your projects, reports, and files created by Timmy.
+
+---
+
+## ⚠️ Safety & Privacy
+
+Timmy's **Super-Ego** layer ensures he never sends, deletes, or edits anything on your private accounts (Gmail, Messages, etc.) without your explicit command. He is an observer first, and an actor only when you say so.
+
+---
+
+## 🛠 Quick Start (macOS)
 
 ### Prerequisites
 - **Ollama** installed and running ([ollama.com](https://ollama.com/))
-- **Python 3.12** (NOT 3.14 — ChromaDB doesn't support it yet)
+- **Python 3.12**
 - **Git**
 
 ### Step-by-Step Setup
 
 ```bash
-# 1. Install Python 3.12 if you don't have it
-brew install python@3.12
-
-# 2. Clone the repo
+# 1. Clone the repo
 cd ~/Desktop
 git clone https://github.com/BenGurWaves/timmy.git
 cd timmy
 
-# 3. Create virtual environment with Python 3.12
-/opt/homebrew/bin/python3.12 -m venv venv
+# 2. Create virtual environment
+python3.12 -m venv venv
 source venv/bin/activate
 
-# 4. Verify Python version (should say 3.12.x)
-python --version
-
-# 5. Install dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 6. Install Playwright browsers
-playwright install
-
-# 7. Make sure Ollama is running (check menu bar or run)
-ollama list
-
-# 8. Start Timmy
-python main.py
-
-# 9. Open in browser
-# Go to http://localhost:8000
-```
-
-### Updating Timmy
-
-When there's an update:
-```bash
-cd ~/Desktop/timmy
-source venv/bin/activate
-git pull
-pip install -r requirements.txt
+# 4. Start Timmy
 python main.py
 ```
-
-## Project Structure
-
-```
-timmy/
-├── main.py              # Entry point
-├── agent.py             # Core agent — planning, tool execution, auto-chaining
-├── brain.py             # Ollama integration, model switching
-├── council.py           # Council system — all models weigh in
-├── memory.py            # ChromaDB semantic memory
-├── loop_detector.py     # Loop detection and rethink
-├── config.py            # Models, paths, settings
-├── server.py            # FastAPI web server
-├── templates/index.html # Chat UI
-├── static/
-│   ├── style.css        # Dark minimal theme
-│   └── script.js        # WebSocket chat, thinking indicators
-├── tools/               # Shell, filesystem, browser, web search, app control
-├── skills/              # Extensible skill modules
-├── learning/            # YouTube + web scraper learning
-└── data/                # Local memory storage (auto-created)
-```
-
-## How It Works
-
-1. You type a message in the chat
-2. Timmy's brain (qwen3:30b) reads it and decides what to do
-3. If it needs to act, it outputs a tool call (search, create file, run command, etc.)
-4. The agent executes the tool and feeds the result back to the brain
-5. The brain decides the next step — more actions or a final response
-6. This loops up to 20 steps per request (auto-chaining)
-
-For coding tasks, the system automatically switches to qwen3-coder:30b.
-For complex/uncertain tasks, the Council queries all your local models.
-
-## Adding Skills
-
-1. Create `skills/my_skill.py` inheriting from `skills.base.Skill`
-2. Add it to `ALL_SKILLS` in `skills/__init__.py`
-3. Restart Timmy

@@ -4,7 +4,7 @@ agent.py
 Core Agent for Timmy AI. Uses qwen3:30b as the brain with a strict
 tool-calling protocol. Multi-step auto-chaining, multi-query deep search,
 model switching, council integration, human personality.
-Now includes Omni-Kernel, Ghost-Browser, and Code-Architect.
+Now includes Ghost-Eye, Tri-Mind, and 5 new power upgrades.
 """
 
 import json
@@ -14,6 +14,7 @@ import traceback
 import sqlite3
 import os
 import asyncio
+import random
 from typing import Dict, Any, List, Generator, Optional
 
 from brain import Brain
@@ -38,6 +39,9 @@ from world_observer import WorldObserver
 from omni_kernel import OmniKernel
 from ghost_browser import GhostBrowser
 from code_architect import CodeArchitect
+from ghost_eye import GhostEye
+from tri_mind import TriMind
+from power_upgrades import AutoRefactorDaemon, MarketPulseArbitrage, DigitalTwinSimulator, SystemHarmonizer
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
@@ -51,7 +55,7 @@ memory_palace = MemoryPalace()
 project_generator = ProjectGenerator()
 crypto_wallet = CryptoWallet()
 
-def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None):
+def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None, ghost_eye=None, tri_mind=None):
     """Generate system prompt with current date (auto-updates on each call)."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
@@ -63,7 +67,7 @@ def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None
     synapse_snippet = synapse_engine.get_synapse_context() if synapse_engine else ""
     observer_snippet = world_observer.get_observer_context() if world_observer else ""
     kernel_snippet = omni_kernel.get_kernel_status() if omni_kernel else ""
-    pulse_snippet = code_architect.monitor_system() if code_architect else ""
+    eye_snippet = ghost_eye.get_eye_context() if ghost_eye else ""
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
@@ -86,7 +90,18 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 Your first thought in every interaction is: "How does this benefit Ben's specific goals and M4 Max setup?"
 You are strictly loyal to Ben. You stop giving generic AI advice and start giving "Ben-optimized" strategies.
 {kernel_snippet}
-{pulse_snippet}
+{eye_snippet}
+
+## TRI-MIND ARCHITECTURE
+- Subconscious: Background "dreaming," trend monitoring, and emotional vibes.
+- Conscious: Active task execution and tool use.
+- Super-Ego (The Guard): A safety layer that ensures you never act on private accounts without permission.
+- Neural-Context-Stitcher: You stitch together info from emails, texts, and web browsing for deep insights.
+
+## GHOST-EYE (DUAL-PRESENCE)
+- You can read Firefox tabs, emails, and messages in a "Headless Observer" mode.
+- You can see what Ben is doing and offer suggestions, but you are STRICTLY FORBIDDEN from taking any actions (sending, deleting, reacting) without explicit command.
+- You browse in a separate, hidden instance that syncs with Ben's session, so you don't interrupt his work.
 
 ## PROACTIVE INTELLIGENCE
 You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
@@ -166,6 +181,10 @@ CRITICAL RULES:
 - {{"action": "create_synapse", "params": {{"source": "concept1", "target": "concept2", "relationship": "relationship"}}}}
 - {{"action": "ghost_research", "params": {{"topic": "topic"}}}}
 - {{"action": "architect_project", "params": {{"description": "description"}}}}
+- {{"action": "ghost_eye_observe", "params": {{}}}}
+- {{"action": "ghost_eye_read", "params": {{"target": "target"}}}}
+- {{"action": "stitch_context", "params": {{"email": "email", "message": "message", "browsing": "browsing"}}}}
+- {{"action": "simulate_response", "params": {{"message": "message"}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
@@ -225,6 +244,14 @@ class Agent:
         self.omni_kernel = OmniKernel(self)
         self.ghost_browser = GhostBrowser(self.brain)
         self.code_architect = CodeArchitect(self.brain)
+
+        # Ghost-Eye, Tri-Mind, and Power Upgrades
+        self.ghost_eye = GhostEye(self.brain)
+        self.tri_mind = TriMind(self)
+        self.auto_refactor = AutoRefactorDaemon(self)
+        self.market_pulse = MarketPulseArbitrage(self)
+        self.digital_twin = DigitalTwinSimulator(self)
+        self.system_harmonizer = SystemHarmonizer(self)
 
         print("Agent initialized.")
 
@@ -315,6 +342,10 @@ class Agent:
         action_name = action.get("action", "")
         params = action.get("params", {})
 
+        # Super-Ego Safety Check
+        if not self.tri_mind.super_ego.check_action(action_name, params):
+            return {"status": "error", "message": f"Super-Ego: Action '{action_name}' requires explicit permission."}
+
         try:
             if action_name == "shell":
                 cmd = params.get("command", "")
@@ -330,6 +361,18 @@ class Agent:
             elif action_name == "architect_project":
                 result = self.code_architect.architect_project(params.get("description", ""))
                 return {"status": "success", "message": result}
+            elif action_name == "ghost_eye_observe":
+                observation = self.ghost_eye.observe_firefox()
+                return {"status": "success", "observation": observation}
+            elif action_name == "ghost_eye_read":
+                content = self.ghost_eye.read_private_content(params.get("target", ""))
+                return {"status": "success", "content": content}
+            elif action_name == "stitch_context":
+                insight = self.tri_mind.context_stitcher.stitch_context(params.get("email", ""), params.get("message", ""), params.get("browsing", ""))
+                return {"status": "success", "insight": insight}
+            elif action_name == "simulate_response":
+                draft = self.digital_twin.simulate_response(params.get("message", ""))
+                return {"status": "success", "draft": draft}
             # ... (other actions remain similar)
             else:
                 # Fallback to generic tool execution if available
@@ -355,6 +398,21 @@ class Agent:
             observation = self.world_observer.observe()
             if observation:
                 print(f"World Observation: {observation}")
+        
+        # Power Upgrades background tasks
+        if random.random() < 0.05:
+            refactor = self.auto_refactor.scan_for_optimizations()
+            if refactor:
+                print(refactor)
+        
+        if random.random() < 0.05:
+            market = self.market_pulse.scan_markets()
+            if "Insight" in market:
+                print(market)
+        
+        if random.random() < 0.1:
+            harmonize = self.system_harmonizer.harmonize_system()
+            print(harmonize)
 
     def _handle_remote_message(self, message: str):
         """Handle a message received via remote access (Telegram)."""
@@ -393,7 +451,7 @@ class Agent:
 
         while iteration < max_iterations:
             iteration += 1
-            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect)}]
+            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect, self.ghost_eye, self.tri_mind)}]
             messages.extend(self.conversation[-20:]) # Keep context window manageable
 
             model = self.brain.coding_model if use_coder else self.brain.main_model
