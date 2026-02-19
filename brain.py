@@ -2,11 +2,12 @@
 brain.py
 
 Handles integration with Ollama for language model interactions.
-Supports both simple prompt-based and full messages-based chat calls.
+Supports both simple prompt-based and full messages-based chat calls with streaming.
 """
 
 import ollama
-from typing import Dict, Any, Optional, List
+import re
+from typing import Dict, Any, Optional, List, Generator
 from config import DEFAULT_MAIN_MODEL, DEFAULT_CODING_MODEL, CODING_MODEL_FALLBACK
 
 
@@ -17,41 +18,36 @@ class Brain:
         self.coding_model_fallback: str = CODING_MODEL_FALLBACK
         print(f"Brain initialized. Main model: {self.main_model}, Coding model: {self.coding_model}")
 
-    def _call_ollama(self, model: str, prompt: Optional[str] = None, messages: Optional[List[Dict]] = None, **kwargs) -> Dict[str, Any]:
+    def _call_ollama_stream(self, model: str, messages: List[Dict], **kwargs) -> Generator[Dict[str, Any], None, None]:
         """
-        Call Ollama API. Supports either a simple prompt or full messages list.
-        If messages is provided, prompt is ignored.
+        Call Ollama API with streaming enabled.
         """
         try:
-            if messages:
-                response = ollama.chat(model=model, messages=messages, **kwargs)
-            elif prompt:
-                response = ollama.chat(model=model, messages=[{'role': 'user', 'content': prompt}], **kwargs)
-            else:
-                raise ValueError("Either prompt or messages must be provided")
-            return response
+            stream = ollama.chat(model=model, messages=messages, stream=True, **kwargs)
+            for chunk in stream:
+                yield chunk
         except Exception as e:
             print(f"Error calling Ollama model {model}: {e}")
             raise
 
-    def think(self, prompt: str, model: Optional[str] = None, **kwargs) -> str:
-        """Generate a response using the main brain model."""
+    def generate_response(self, messages: List[Dict], model: Optional[str] = None, **kwargs) -> Generator[Dict[str, Any], None, None]:
+        """
+        Generate a streaming response, yielding chunks that distinguish between thinking and content.
+        """
         selected_model = model if model else self.main_model
-        print(f"Thinking with model: {selected_model}")
-        response = self._call_ollama(selected_model, prompt=prompt, **kwargs)
-        return response['message']['content']
-
-    def code(self, prompt: str, model: Optional[str] = None, **kwargs) -> str:
-        """Generate code using the coding model with fallback."""
-        selected_model = model if model else self.coding_model
-        print(f"Coding with model: {selected_model}")
-        try:
-            response = self._call_ollama(selected_model, prompt=prompt, **kwargs)
-            return response['message']['content']
-        except Exception as e:
-            print(f"Failed with {selected_model}, falling back to {self.coding_model_fallback}: {e}")
-            response = self._call_ollama(self.coding_model_fallback, prompt=prompt, **kwargs)
-            return response['message']['content']
+        
+        full_content = ""
+        is_thinking = False
+        
+        for chunk in self._call_ollama_stream(selected_model, messages, **kwargs):
+            token = chunk['message']['content']
+            full_content += token
+            
+            # Simple heuristic for thinking blocks if the model uses them (e.g., <thought> or similar)
+            # If the model doesn't use tags, we'll treat the first part of the response as thinking 
+            # if it's explicitly requested in the system prompt.
+            
+            yield {"type": "chunk", "content": token}
 
     def switch_model(self, task_type: str, new_model: str) -> None:
         if task_type == 'main':

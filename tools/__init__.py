@@ -11,6 +11,7 @@ from .filesystem import FileSystemTool
 from .browser import BrowserTool
 from .web_search import WebSearchTool
 from .app_control import AppControlTool
+from .deep_search import DeepSearchTool
 
 # List of all available tools
 ALL_TOOLS = [
@@ -19,6 +20,7 @@ ALL_TOOLS = [
     BrowserTool(),
     WebSearchTool(),
     AppControlTool(),
+    DeepSearchTool(),
 ]
 
 __all__ = [
@@ -28,5 +30,6 @@ __all__ = [
     "BrowserTool",
     "WebSearchTool",
     "AppControlTool",
+    "DeepSearchTool",
     "ALL_TOOLS",
 ]

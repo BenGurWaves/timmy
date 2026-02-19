@@ -140,15 +140,19 @@ body {
     align-self: flex-start;
     color: #888;
     font-size: 0.85em;
-    padding: 6px 12px;
-    background: transparent;
-    border-left: 2px solid #333;
+    padding: 10px 14px;
+    background: #1a1a1a;
+    border-left: 2px solid #f59e0b;
     margin-left: 4px;
+    border-radius: 4px;
+    font-style: italic;
+    opacity: 0.8;
 }
 
 .tool-output-wrapper {
     align-self: flex-start;
     max-width: 85%;
+    width: 100%;
 }
 
 .tool-output-toggle {

@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let ws = null;
     let reconnectAttempts = 0;
+    let currentTimmyMessage = null;
+    let currentThinkingMessage = null;
 
     // Load chat history first
     loadHistory().then(() => {
@@ -27,21 +29,29 @@ document.addEventListener("DOMContentLoaded", () => {
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            if (data.type === "text") {
+            if (data.type === "text_chunk") {
                 hideThinking();
-                appendMessage(data.text, "timmy-message");
-            } else if (data.type === "status") {
-                showThinking(data.text);
+                if (!currentTimmyMessage) {
+                    currentTimmyMessage = createMessageBubble("timmy-message");
+                }
+                currentTimmyMessage.textContent += data.text;
             } else if (data.type === "thinking") {
                 showThinking(data.text);
-                appendMessage(data.text, "thinking-message");
+                if (!currentThinkingMessage) {
+                    currentThinkingMessage = createMessageBubble("thinking-message");
+                }
+                currentThinkingMessage.textContent = "Thinking: " + data.text;
+            } else if (data.type === "status") {
+                showThinking(data.text);
             } else if (data.type === "tool_output") {
                 appendToolOutput(data.tool_name, data.output);
-            } else if (data.type === "council_activated") {
-                appendMessage("Council activated — consulting all models...", "council-message");
+                currentTimmyMessage = null;
+                currentThinkingMessage = null;
             } else if (data.type === "error") {
                 hideThinking();
-                appendMessage(data.text, "timmy-message");
+                appendMessage(data.text, "error-message");
+                currentTimmyMessage = null;
+                currentThinkingMessage = null;
             }
 
             scrollToBottom();
@@ -86,15 +96,22 @@ document.addEventListener("DOMContentLoaded", () => {
             ws.send(JSON.stringify({ message: message }));
             messageInput.value = "";
             messageInput.style.height = "auto";
+            currentTimmyMessage = null;
+            currentThinkingMessage = null;
             scrollToBottom();
         }
     }
 
-    function appendMessage(text, className) {
+    function createMessageBubble(className) {
         const el = document.createElement("div");
         el.classList.add("message-bubble", className);
-        el.textContent = text;
         chatMessages.appendChild(el);
+        return el;
+    }
+
+    function appendMessage(text, className) {
+        const el = createMessageBubble(className);
+        el.textContent = text;
     }
 
     function appendToolOutput(toolName, output) {
