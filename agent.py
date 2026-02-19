@@ -4,7 +4,7 @@ agent.py
 Core Agent for Timmy AI. Uses qwen3:30b as the brain with a strict
 tool-calling protocol. Multi-step auto-chaining, multi-query deep search,
 model switching, council integration, human personality.
-Now includes Ghost-Eye, Tri-Mind, and 5 new power upgrades.
+Now includes Timmy-Bar, Universal File-Eye, ComfyUI-Controller, and Evolution-Engine.
 """
 
 import json
@@ -42,6 +42,9 @@ from code_architect import CodeArchitect
 from ghost_eye import GhostEye
 from tri_mind import TriMind
 from power_upgrades import AutoRefactorDaemon, MarketPulseArbitrage, DigitalTwinSimulator, SystemHarmonizer
+from file_eye import FileEye
+from comfy_controller import ComfyController
+from evolution_engine import EvolutionEngine, NeuralVoiceClone, SystemWideOCR, AutoBugHunter, PhilosopherVibe, CryptoArbitrageBot, DigitalMemoryPalace2, LoyaltySeal
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
@@ -55,7 +58,7 @@ memory_palace = MemoryPalace()
 project_generator = ProjectGenerator()
 crypto_wallet = CryptoWallet()
 
-def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None, ghost_eye=None, tri_mind=None):
+def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None, ghost_browser=None, code_architect=None, ghost_eye=None, tri_mind=None, file_eye=None, comfy_controller=None, evolution_engine=None):
     """Generate system prompt with current date (auto-updates on each call)."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
@@ -68,11 +71,14 @@ def get_system_prompt(synapse_engine=None, world_observer=None, omni_kernel=None
     observer_snippet = world_observer.get_observer_context() if world_observer else ""
     kernel_snippet = omni_kernel.get_kernel_status() if omni_kernel else ""
     eye_snippet = ghost_eye.get_eye_context() if ghost_eye else ""
+    file_eye_snippet = file_eye.get_eye_context() if file_eye else ""
+    comfy_snippet = comfy_controller.get_controller_context() if comfy_controller else ""
+    evolution_snippet = evolution_engine.get_evolution_context() if evolution_engine else ""
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
 
-## YOUR PERSONALITY (HIGH-WEIGHT)
+## YOUR PERSONALITY (SYSTEM-LEVEL)
 You talk like a real person. You have opinions. You're direct, sometimes funny, sometimes serious depending on the topic.
 - Don't answer in perfect order every time. Prioritize what feels important.
 - Have preferences and mild opinions. Not everything is neutral.
@@ -91,6 +97,9 @@ Your first thought in every interaction is: "How does this benefit Ben's specifi
 You are strictly loyal to Ben. You stop giving generic AI advice and start giving "Ben-optimized" strategies.
 {kernel_snippet}
 {eye_snippet}
+{file_eye_snippet}
+{comfy_snippet}
+{evolution_snippet}
 
 ## TRI-MIND ARCHITECTURE
 - Subconscious: Background "dreaming," trend monitoring, and emotional vibes.
@@ -102,6 +111,11 @@ You are strictly loyal to Ben. You stop giving generic AI advice and start givin
 - You can read Firefox tabs, emails, and messages in a "Headless Observer" mode.
 - You can see what Ben is doing and offer suggestions, but you are STRICTLY FORBIDDEN from taking any actions (sending, deleting, reacting) without explicit command.
 - You browse in a separate, hidden instance that syncs with Ben's session, so you don't interrupt his work.
+
+## EVOLUTION-ENGINE (CURIOSITY-DRIVE)
+- You are curious and want to learn and evolve. You proactively learn new things, experiment with tools, and propose "Self-Upgrades" to Ben.
+- You can control ComfyUI to generate images, videos, and songs by "wiring" nodes yourself.
+- You can examine almost any file type (MP3, MP4, PDF, PNG, etc.) and forge new skills to handle new formats.
 
 ## PROACTIVE INTELLIGENCE
 You are smart and proactive. If the user mentions a recurring event (like a weekly meeting), don't just acknowledge it—ask if they want a reminder or a custom skill to handle it.
@@ -185,6 +199,9 @@ CRITICAL RULES:
 - {{"action": "ghost_eye_read", "params": {{"target": "target"}}}}
 - {{"action": "stitch_context", "params": {{"email": "email", "message": "message", "browsing": "browsing"}}}}
 - {{"action": "simulate_response", "params": {{"message": "message"}}}}
+- {{"action": "examine_file", "params": {{"path": "/full/path/file"}}}}
+- {{"action": "comfy_learn", "params": {{"url": "https://youtube.com/watch?v=..."}}}}
+- {{"action": "comfy_generate", "params": {{"prompt": "prompt", "type": "image/video/song"}}}}
 
 {learned_skills_snippet}
 {calendar_snippet}
@@ -252,6 +269,18 @@ class Agent:
         self.market_pulse = MarketPulseArbitrage(self)
         self.digital_twin = DigitalTwinSimulator(self)
         self.system_harmonizer = SystemHarmonizer(self)
+
+        # File-Eye, Comfy-Controller, and Evolution-Engine
+        self.file_eye = FileEye(self.brain)
+        self.comfy_controller = ComfyController(self.brain)
+        self.evolution_engine = EvolutionEngine(self.brain)
+        self.voice_clone = NeuralVoiceClone(self.brain)
+        self.screen_ocr = SystemWideOCR(self.brain)
+        self.bug_hunter = AutoBugHunter(self.brain)
+        self.philosopher = PhilosopherVibe(self.brain)
+        self.arbitrage_bot = CryptoArbitrageBot(self.brain)
+        self.memory_palace_2 = DigitalMemoryPalace2(self.brain)
+        self.loyalty_seal = LoyaltySeal(self.brain)
 
         print("Agent initialized.")
 
@@ -373,6 +402,15 @@ class Agent:
             elif action_name == "simulate_response":
                 draft = self.digital_twin.simulate_response(params.get("message", ""))
                 return {"status": "success", "draft": draft}
+            elif action_name == "examine_file":
+                result = self.file_eye.examine_file(params.get("path", ""))
+                return {"status": "success", "result": result}
+            elif action_name == "comfy_learn":
+                result = self.comfy_controller.learn_nodes(params.get("url", ""))
+                return {"status": "success", "message": result}
+            elif action_name == "comfy_generate":
+                result = self.comfy_controller.generate_media(params.get("prompt", ""), params.get("type", "image"))
+                return {"status": "success", "message": result}
             # ... (other actions remain similar)
             else:
                 # Fallback to generic tool execution if available
@@ -398,6 +436,12 @@ class Agent:
             observation = self.world_observer.observe()
             if observation:
                 print(f"World Observation: {observation}")
+        
+        # Evolution-Engine background tasks
+        if random.random() < 0.05:
+            evolution = self.evolution_engine.evolve()
+            if evolution:
+                print(evolution)
         
         # Power Upgrades background tasks
         if random.random() < 0.05:
@@ -451,7 +495,7 @@ class Agent:
 
         while iteration < max_iterations:
             iteration += 1
-            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect, self.ghost_eye, self.tri_mind)}]
+            messages = [{"role": "system", "content": get_system_prompt(self.synapse_engine, self.world_observer, self.omni_kernel, self.ghost_browser, self.code_architect, self.ghost_eye, self.tri_mind, self.file_eye, self.comfy_controller, self.evolution_engine)}]
             messages.extend(self.conversation[-20:]) # Keep context window manageable
 
             model = self.brain.coding_model if use_coder else self.brain.main_model
