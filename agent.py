@@ -22,15 +22,23 @@ from tools import ALL_TOOLS, Tool
 from skills import ALL_SKILLS, Skill, CodeWriterSkill
 from learning import YouTubeLearner, WebScraper
 from config import PROJECT_ROOT, DATA_PATH
+from vibe_system import VibeSystem
+from skill_forge import SkillForge
 
 # SQLite database for episodic memory
 MEMORY_DB_FILE = os.path.join(DATA_PATH, "memory.db")
 
+# Global instances for vibe and skill forge
+vibe_system = VibeSystem()
+skill_forge = SkillForge()
 
 def get_system_prompt():
     """Generate system prompt with current date (auto-updates on each call)."""
     today = datetime.date.today().strftime("%B %d, %Y")
     year = datetime.date.today().year
+    
+    vibe_snippet = vibe_system.get_vibe_prompt_snippet()
+    learned_skills_snippet = skill_forge.get_skill_list()
 
     return f"""You are Timmy. You live on Ben's MacBook. You're not a chatbot — you're an agent with full computer access.
 Today is {today}. The year is {year}.
@@ -47,6 +55,7 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 - Don't be omniscient. If you're not sure, say so.
 - Never use "You:" or "Timmy:" prefixes. Just talk naturally.
 - Don't use excessive emojis. One occasionally is fine.
+{vibe_snippet}
 
 ## THINKING PROTOCOL
 Before you act or respond, you MUST think. Wrap your internal reasoning in <thought> tags.
@@ -56,14 +65,6 @@ In your thinking:
 3. Plan your next steps.
 4. If you're unsure, decide what to search for.
 5. If you're hallucinating or unsure, admit it and ask for clarification.
-
-Example:
-<thought>
-The user wants to know the weather in San Francisco. I need to find their location first, then search for the weather.
-Step 1: Get location via shell.
-Step 2: Search weather for that location.
-</thought>
-{{"action": "shell", "params": {{"command": "curl -s ipinfo.io"}}}}
 
 ## HOW TO USE TOOLS
 When you need to take an action, output ONLY a JSON object like this:
@@ -93,6 +94,10 @@ CRITICAL RULES:
 - {{"action": "convene_council", "params": {{"problem": "describe the complex problem"}}}}
 - {{"action": "plan", "params": {{"steps": ["step 1", "step 2", "step 3"]}}}}
 - {{"action": "notes_create", "params": {{"title": "Note Title", "body": "Note content"}}}}
+- {{"action": "forge_skill", "params": {{"name": "SkillName", "description": "What it does", "commands": ["cmd1", "cmd2"]}}}}
+- {{"action": "use_skill", "params": {{"name": "SkillName"}}}}
+
+{learned_skills_snippet}
 
 ## PLANNING
 For complex tasks (research, multi-file creation, coding), ALWAYS start with a plan action.
@@ -229,6 +234,17 @@ class Agent:
                 return self.tools["Web Search"].execute(query=params.get("query", ""))
             elif action_name == "deep_search":
                 return self.tools["Deep Search"].execute(query=params.get("query", ""))
+            elif action_name == "forge_skill":
+                return skill_forge.learn_skill(params.get("name", ""), params.get("description", ""), params.get("commands", []))
+            elif action_name == "use_skill":
+                skill_data = skill_forge.execute_skill(params.get("name", ""))
+                if skill_data["status"] == "success":
+                    # Execute each command in the skill
+                    results = []
+                    for cmd in skill_data["commands"]:
+                        results.append(self.tools["Shell Executor"].execute(command=cmd))
+                    return {"status": "success", "results": results}
+                return skill_data
             # ... (other actions remain similar, but streamlined)
             else:
                 # Fallback to generic tool execution if available
@@ -293,6 +309,10 @@ class Agent:
             if action:
                 yield {"type": "status", "text": f"Executing {action['action']}..."}
                 result = self._execute_action(action)
+                
+                # Record result for vibe system
+                vibe_system.record_result(result.get("status") == "success")
+                
                 result_str = json.dumps(result, indent=2)
                 
                 yield {"type": "tool_output", "tool_name": action['action'], "output": result_str}
