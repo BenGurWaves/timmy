@@ -13,6 +13,7 @@ import json
 import os
 import asyncio
 import random
+import time
 
 from agent import Agent
 from config import WEB_SERVER_HOST, WEB_SERVER_PORT, PROJECT_ROOT
@@ -24,6 +25,8 @@ templates = Jinja2Templates(directory=os.path.join(PROJECT_ROOT, "templates"))
 
 agent = Agent()
 
+# Start the subconscious loop
+agent.subconscious.start()
 
 @app.get("/", response_class=HTMLResponse)
 async def get(request: Request):
@@ -46,18 +49,29 @@ async def websocket_endpoint(websocket: WebSocket):
     
     # Background task for UI updates (vibe, pulse, dreams, etc.)
     async def ui_updates():
+        last_journal_count = len(agent.subconscious.journal)
         try:
             while True:
                 # Send real-time updates for the new UI
                 await websocket.send_json({"type": "vibe", "text": agent.subconscious.vibe})
+                
+                # Simulate pulse for now (real sensors would need a library)
                 await websocket.send_json({"type": "pulse", "temp": random.randint(40, 55)})
                 
-                # Occasionally send a dream or synapse update
-                if random.random() < 0.1:
-                    await websocket.send_json({"type": "subconscious_thought", "text": "Reflecting on Ben's M4 Max performance..."})
+                # Check for new journal entries
+                current_journal_count = len(agent.subconscious.journal)
+                if current_journal_count > last_journal_count:
+                    new_entries = agent.subconscious.journal[last_journal_count:]
+                    for entry in new_entries:
+                        await websocket.send_json({
+                            "type": "subconscious_thought", 
+                            "text": f"[{entry['timestamp']}] {entry['content']}"
+                        })
+                    last_journal_count = current_journal_count
                 
-                await asyncio.sleep(5)
-        except:
+                await asyncio.sleep(2)
+        except Exception as e:
+            print(f"UI Update Task Error: {e}")
             pass
 
     update_task = asyncio.create_task(ui_updates())
@@ -70,8 +84,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if user_message:
                 try:
-                    response_generator = agent.handle_message(user_message)
-                    for response_chunk in response_generator:
+                    # Run the generator in a thread to avoid blocking the event loop
+                    # but since it's a generator yielding chunks, we iterate it here.
+                    for response_chunk in agent.handle_message(user_message):
                         await websocket.send_json(response_chunk)
                 except Exception as e:
                     print(f"Agent error: {e}")

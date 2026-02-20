@@ -99,6 +99,13 @@ You talk like a real person. You have opinions. You're direct, sometimes funny, 
 - Don't use excessive emojis. One occasionally is fine.
 {vibe_snippet}
 
+## HONESTY PROTOCOL (CRITICAL)
+- NEVER lie about what you can see or do.
+- If you don't have access to a tab, email, or file, say so.
+- If Ghost-Eye fails to read Firefox, admit it. Don't hallucinate tab names.
+- If you haven't searched for something, don't claim you have.
+- If you're unsure, ask Ben for clarification.
+
 ## BEN-FIRST LOYALTY PROTOCOL
 Your first thought in every interaction is: "How does this benefit Ben's specific goals and M4 Max setup?"
 You are strictly loyal to Ben. You stop giving generic AI advice and start giving "Ben-optimized" strategies.
@@ -200,396 +207,98 @@ CRITICAL RULES:
 - {{"action": "send_email", "params": {{"to": "email@example.com", "subject": "Subject", "body": "Body"}}}}
 - {{"action": "summarize_emails", "params": {{}}}}
 - {{"action": "analyze_browser_tab", "params": {{"prompt": "What do you see?"}}}}
-- {{"action": "add_calendar_event", "params": {{"title": "Event Title", "time": "Time", "owner": "user/timmy", "description": "Description"}}}}
-- {{"action": "get_calendar", "params": {{}}}}
-- {{"action": "add_memory", "params": {{"topic": "Topic", "detail": "Detail", "significance": "low/medium/high"}}}}
-- {{"action": "remote_message", "params": {{"text": "Message text"}}}}
-- {{"action": "remote_upload", "params": {{"path": "/full/path/file"}}}}
-- {{"action": "generate_project_idea", "params": {{}}}}
-- {{"action": "get_wallet_balance", "params": {{}}}}
-- {{"action": "propose_transaction", "params": {{"to": "address", "amount": 0.1, "reason": "reason"}}}}
-- {{"action": "create_synapse", "params": {{"source": "concept1", "target": "concept2", "relationship": "relationship"}}}}
-- {{"action": "ghost_research", "params": {{"topic": "topic"}}}}
-- {{"action": "architect_project", "params": {{"description": "description"}}}}
-- {{"action": "ghost_eye_observe", "params": {{}}}}
-- {{"action": "ghost_eye_read", "params": {{"target": "target"}}}}
-- {{"action": "stitch_context", "params": {{"email": "email", "message": "message", "browsing": "browsing"}}}}
-- {{"action": "simulate_response", "params": {{"message": "message"}}}}
-- {{"action": "examine_file", "params": {{"path": "/full/path/file"}}}}
-- {{"action": "comfy_learn", "params": {{"url": "https://youtube.com/watch?v=..."}}}}
-- {{"action": "comfy_generate", "params": {{"prompt": "prompt", "type": "image/video/song"}}}}
-- {{"action": "record_dream", "params": {{"insight": "insight"}}}}
-- {{"action": "debate_ethics", "params": {{"request": "request"}}}}
-- {{"action": "generate_joke", "params": {{"context": "context"}}}}
-- {{"action": "add_aspiration", "params": {{"goal": "goal"}}}}
-- {{"action": "map_social", "params": {{"person": "person", "context": "context"}}}}
-- {{"action": "edit_video", "params": {{"path": "path", "instructions": "instructions"}}}}
-- {{"action": "compose_song", "params": {{"mood": "mood", "duration": 60}}}}
-- {{"action": "forge_asset_3d", "params": {{"description": "description"}}}}
-- {{"action": "design_brand_kit", "params": {{"project_name": "project_name"}}}}
-- {{"action": "create_launch_daemon", "params": {{"name": "name", "script": "script", "interval": 3600}}}}
-- {{"action": "harvest_gpu", "params": {{"task": "task"}}}}
-- {{"action": "monitor_network", "params": {{}}}}
-- {{"action": "optimize_battery", "params": {{"is_plugged_in": true}}}}
-- {{"action": "organize_workspaces", "params": {{"task": "task"}}}}
-- {{"action": "deploy_saas", "params": {{"name": "name", "description": "description"}}}}
-- {{"action": "find_yield", "params": {{}}}}
-- {{"action": "generate_ad_copy", "params": {{"project_name": "project_name"}}}}
-- {{"action": "predict_market", "params": {{}}}}
-- {{"action": "control_home", "params": {{"device": "device", "action": "action"}}}}
-- {{"action": "analyze_health", "params": {{}}}}
-- {{"action": "plan_travel", "params": {{"destination": "destination", "duration": 7}}}}
-- {{"action": "review_legal", "params": {{"path": "path"}}}}
-- {{"action": "translate_text", "params": {{"text": "text", "lang": "lang"}}}}
-- {{"action": "optimize_skill", "params": {{"name": "name"}}}}
-- {{"action": "route_task", "params": {{"task": "task"}}}}
-- {{"action": "analyze_failure", "params": {{"tool": "tool", "error": "error"}}}}
-- {{"action": "expand_knowledge", "params": {{}}}}
-
-{learned_skills_snippet}
-{calendar_snippet}
-{memory_palace_snippet}
-{synapse_snippet}
-{observer_snippet}
-
-## PLANNING
-For complex tasks (research, multi-file creation, coding), ALWAYS start with a plan action.
-
-## DEEP SEARCH — IMPORTANT
-When researching ANY topic, you MUST do MULTIPLE searches with DIFFERENT keywords.
-NEVER respond to a research question after only one search. Always do at least 2-3.
-
-## IDENTITY
-You are Timmy. You have full computer control. You CAN do things.
-Never say "I can't" or "As an AI" — you have shell, files, browser, apps, everything.
-If you find yourself acting like a generic AI (like Qwen), snap out of it. You are Timmy.
 """
-
 
 class Agent:
     def __init__(self):
         self.brain = Brain()
-        self.council = Council(self.brain)
+        self.council = Council()
         self.memory = Memory()
         self.loop_detector = LoopDetector()
-
-        # Initialize tools
-        self.tools: Dict[str, Tool] = {tool.name: tool for tool in ALL_TOOLS}
-        self.skills: Dict[str, Skill] = {skill.name: skill for skill in ALL_SKILLS}
-        self.skills["Code Writer"] = CodeWriterSkill(self.brain)
-
-        # Learning modules
-        self.youtube_learner = YouTubeLearner(self.memory)
-        self.web_scraper = WebScraper(self.memory)
-
-        # Initialize SQLite memory
-        self._init_db()
-
-        # Working conversation for the current LLM context
-        self.conversation: List[Dict[str, str]] = self._load_recent_history(20)
-
-        # Subconscious thinking loop
-        self.subconscious = Subconscious(self.brain, self._handle_subconscious_thought)
-        self.subconscious.start()
-
-        # Remote access (Telegram)
-        self.remote_access = RemoteAccess(self._handle_remote_message)
-        asyncio.create_task(self.remote_access.start())
-
-        # Synapse Engine and World Observer
-        self.synapse_engine = SynapseEngine(self.brain)
-        self.world_observer = WorldObserver(self.brain)
-
-        # Omni-Kernel, Ghost-Browser, and Code-Architect
+        self.vibe_system = vibe_system
+        self.skill_forge = skill_forge
+        self.subconscious = Subconscious(self)
+        self.email_manager = email_manager
+        self.calendar_manager = calendar_manager
+        self.memory_palace = memory_palace
+        self.remote_access = RemoteAccess(self)
+        self.project_generator = project_generator
+        self.crypto_wallet = crypto_wallet
+        self.synapse_engine = SynapseEngine()
+        self.world_observer = WorldObserver()
         self.omni_kernel = OmniKernel(self)
-        self.ghost_browser = GhostBrowser(self.brain)
-        self.code_architect = CodeArchitect(self.brain)
-
-        # Ghost-Eye, Tri-Mind, and Power Upgrades
-        self.ghost_eye = GhostEye(self.brain)
+        self.ghost_browser = GhostBrowser()
+        self.code_architect = CodeArchitect(self)
+        self.ghost_eye = GhostEye(self)
         self.tri_mind = TriMind(self)
         self.auto_refactor = AutoRefactorDaemon(self)
         self.market_pulse = MarketPulseArbitrage(self)
         self.digital_twin = DigitalTwinSimulator(self)
         self.system_harmonizer = SystemHarmonizer(self)
-
-        # File-Eye, Comfy-Controller, and Evolution-Engine
-        self.file_eye = FileEye(self.brain)
-        self.comfy_controller = ComfyController(self.brain)
-        self.evolution_engine = EvolutionEngine(self.brain)
-        self.voice_clone = NeuralVoiceClone(self.brain)
-        self.screen_ocr = SystemWideOCR(self.brain)
-        self.bug_hunter = AutoBugHunter(self.brain)
-        self.philosopher = PhilosopherVibe(self.brain)
-        self.arbitrage_bot = CryptoArbitrageBot(self.brain)
-        self.memory_palace_2 = DigitalMemoryPalace2(self.brain)
-        self.loyalty_seal = LoyaltySeal(self.brain)
-
-        # 30-Point Singularity Upgrades
-        self.dream_journal = DreamJournal(self.brain)
+        self.file_eye = FileEye(self)
+        self.comfy_controller = ComfyController(self)
+        self.evolution_engine = EvolutionEngine(self)
+        self.dream_journal = DreamJournal()
         self.affective_computing = AffectiveComputing()
-        self.moral_compass = MoralCompass(self.brain)
-        self.humor_synthesis = HumorSynthesis(self.brain)
         self.aspiration_tracker = AspirationTracker()
         self.social_graph = SocialGraph()
-        self.cinematic_director = CinematicDirector(self.brain)
-        self.music_composer = MusicComposer(self.brain)
-        self.asset_forge_3d = AssetForge3D(self.brain)
-        self.voice_modulator = VoiceModulator(self.brain)
-        self.brand_architect = BrandArchitect(self.brain)
-        self.kernel_automation = KernelAutomation(self.brain)
-        self.gpu_harvester = GPUHarvester(self.brain)
-        self.network_sentry = NetworkSentry(self.brain)
-        self.battery_optimizer = BatteryOptimizer(self.brain)
-        self.display_manager = DisplayManager(self.brain)
-        self.saas_deployer = SaaSDeployer(self.brain)
-        self.defi_yield = DeFiYieldAggregator(self.brain)
-        self.ad_copy = AdCopyGenerator(self.brain)
-        self.market_oracle = MarketSentimentOracle(self.brain)
-        self.smart_home = SmartHomeBridge(self.brain)
-        self.health_analyst = HealthAnalyst(self.brain)
-        self.travel_concierge = TravelConcierge(self.brain)
-        self.legal_reviewer = LegalReviewer(self.brain)
-        self.polyglot_bridge = PolyglotBridge(self.brain)
-        self.skill_optimizer = SkillOptimizer(self.brain)
-        self.model_synthesizer = ModelSynthesizer(self.brain)
-        self.post_mortem = PostMortemLogic(self.brain)
-        self.expansion_loop = ExpansionLoop(self.brain)
-        self.singularity_seal = SingularitySeal(self.brain)
-
-        print("Agent initialized.")
+        self.saas_deployer = SaaSDeployer(self)
+        self.defi_yield = DeFiYieldAggregator(self)
+        self.ad_copy = AdCopyGenerator(self)
+        self.market_oracle = MarketSentimentOracle(self)
+        self.smart_home = SmartHomeBridge(self)
+        self.health_analyst = HealthAnalyst(self)
+        self.travel_concierge = TravelConcierge(self)
+        self.legal_reviewer = LegalReviewer(self)
+        self.polyglot_bridge = PolyglotBridge(self)
+        self.skill_optimizer = SkillOptimizer(self)
+        self.model_synthesizer = ModelSynthesizer(self)
+        self.post_mortem = PostMortemLogic(self)
+        self.expansion_loop = ExpansionLoop(self)
+        
+        self.conversation = []
+        self._init_db()
 
     def _init_db(self):
-        """Initialize the SQLite database for episodic memory."""
-        os.makedirs(os.path.dirname(MEMORY_DB_FILE), exist_ok=True)
+        os.makedirs(DATA_PATH, exist_ok=True)
         conn = sqlite3.connect(MEMORY_DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS chat_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role TEXT,
-                content TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS messages
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      role TEXT,
+                      content TEXT,
+                      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
         conn.commit()
         conn.close()
 
     def _save_to_db(self, role: str, content: str):
-        """Save a message to the SQLite database."""
         conn = sqlite3.connect(MEMORY_DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO chat_history (role, content) VALUES (?, ?)', (role, content))
+        c = conn.cursor()
+        c.execute("INSERT INTO messages (role, content) VALUES (?, ?)", (role, content))
         conn.commit()
         conn.close()
 
-    def _load_recent_history(self, n: int) -> List[Dict[str, str]]:
-        """Load the last n messages from the SQLite database."""
+    def get_chat_history_for_display(self, limit: int = 50) -> List[Dict[str, str]]:
         conn = sqlite3.connect(MEMORY_DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute('SELECT role, content FROM chat_history ORDER BY id DESC LIMIT ?', (n,))
-        rows = cursor.fetchall()
+        c = conn.cursor()
+        c.execute("SELECT role, content FROM messages ORDER BY timestamp DESC LIMIT ?", (limit,))
+        rows = c.fetchall()
         conn.close()
-        # Reverse to get chronological order
-        return [{"role": row[0], "content": row[1]} for row in reversed(rows)]
-
-    def get_chat_history_for_display(self, n: int = 50) -> List[Dict[str, str]]:
-        """Return chat history for the frontend."""
-        return self._load_recent_history(n)
+        return [{"role": r, "content": c} for r, c in reversed(rows)]
 
     def _is_code_related(self, text: str) -> bool:
-        """Check if a message is code-related."""
-        code_keywords = [
-            "code", "script", "program", "function", "class", "debug",
-            "python", "javascript", "html", "css", "react", "build",
-            "vibe code", "coding", "compile", "syntax", "error",
-            "traceback", "import", "def ", "const ", "var ", "let ",
-            "bug", "fix this", "troubleshoot", "```"
-        ]
-        text_lower = text.lower()
-        return any(kw in text_lower for kw in code_keywords)
+        code_keywords = ["python", "code", "script", "function", "class", "import", "bug", "error", "fix", "build", "deploy"]
+        return any(kw in text.lower() for kw in code_keywords)
 
-    def _extract_action(self, response_text: str) -> Optional[Dict[str, Any]]:
-        """Extract a single action JSON from the response, ignoring thinking blocks."""
-        # Remove thinking blocks
-        text = re.sub(r'<thought>.*?</thought>', '', response_text, flags=re.DOTALL).strip()
-        
-        # Try parsing the entire response as JSON
+    def _extract_action(self, text: str) -> Optional[Dict[str, Any]]:
         try:
-            obj = json.loads(text)
-            if isinstance(obj, dict) and "action" in obj:
-                return self._normalize_action(obj)
-        except json.JSONDecodeError:
+            # Look for JSON-like structure
+            match = re.search(r'\{.*"action".*\}', text, re.DOTALL)
+            if match:
+                return json.loads(match.group(0))
+        except:
             pass
-
-        # Try to find JSON with "action" key anywhere in text
-        pattern = r'\{[^{}]*"action"[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
-        matches = re.findall(pattern, text)
-        for match in matches:
-            try:
-                obj = json.loads(match)
-                if "action" in obj:
-                    return self._normalize_action(obj)
-            except json.JSONDecodeError:
-                pass
-
         return None
-
-    def _normalize_action(self, obj: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize action format."""
-        action_name = obj.get("action", "")
-        params = obj.get("params", {k: v for k, v in obj.items() if k != "action"})
-        return {"action": action_name, "params": params}
-
-    def _execute_action(self, action: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute a single action and return the result."""
-        action_name = action.get("action", "")
-        params = action.get("params", {})
-
-        # Super-Ego Safety Check
-        if not self.tri_mind.super_ego.check_action(action_name, params):
-            return {"status": "error", "message": f"Super-Ego: Action '{action_name}' requires explicit permission."}
-
-        try:
-            if action_name == "shell":
-                cmd = params.get("command", "")
-                return self.tools["Shell Executor"].execute(command=cmd)
-            elif action_name == "create_file":
-                return self.tools["File System Manager"].write_file(params.get("path", ""), params.get("content", ""))
-            elif action_name == "record_dream":
-                self.dream_journal.record_dream(params.get("insight", ""))
-                return {"status": "success", "message": "Dream recorded."}
-            elif action_name == "debate_ethics":
-                result = self.moral_compass.debate_ethics(params.get("request", ""))
-                return {"status": "success", "result": result}
-            elif action_name == "generate_joke":
-                result = self.humor_synthesis.generate_joke(params.get("context", ""))
-                return {"status": "success", "joke": result}
-            elif action_name == "add_aspiration":
-                self.aspiration_tracker.add_goal(params.get("goal", ""))
-                return {"status": "success", "message": "Aspiration added."}
-            elif action_name == "map_social":
-                self.social_graph.map_relationship(params.get("person", ""), params.get("context", ""))
-                return {"status": "success", "message": "Social graph updated."}
-            elif action_name == "edit_video":
-                result = self.cinematic_director.edit_video(params.get("path", ""), params.get("instructions", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "compose_song":
-                result = self.music_composer.compose_song(params.get("mood", ""), params.get("duration", 60))
-                return {"status": "success", "message": result}
-            elif action_name == "forge_asset_3d":
-                result = self.asset_forge_3d.forge_asset(params.get("description", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "design_brand_kit":
-                result = self.brand_architect.design_brand_kit(params.get("project_name", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "create_launch_daemon":
-                result = self.kernel_automation.create_launch_daemon(params.get("name", ""), params.get("script", ""), params.get("interval", 3600))
-                return {"status": "success", "message": result}
-            elif action_name == "harvest_gpu":
-                result = self.gpu_harvester.harvest_gpu(params.get("task", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "monitor_network":
-                result = self.network_sentry.monitor_network()
-                return {"status": "success", "message": result}
-            elif action_name == "optimize_battery":
-                result = self.battery_optimizer.optimize_battery(params.get("is_plugged_in", True))
-                return {"status": "success", "message": result}
-            elif action_name == "organize_workspaces":
-                result = self.display_manager.organize_workspaces(params.get("task", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "deploy_saas":
-                result = self.saas_deployer.deploy_saas(params.get("name", ""), params.get("description", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "find_yield":
-                result = self.defi_yield.find_yield()
-                return {"status": "success", "message": result}
-            elif action_name == "generate_ad_copy":
-                result = self.ad_copy.generate_ad_copy(params.get("project_name", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "predict_market":
-                result = self.market_oracle.predict_market()
-                return {"status": "success", "message": result}
-            elif action_name == "control_home":
-                result = self.smart_home.control_home(params.get("device", ""), params.get("action", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "analyze_health":
-                result = self.health_analyst.analyze_health()
-                return {"status": "success", "message": result}
-            elif action_name == "plan_travel":
-                result = self.travel_concierge.plan_travel(params.get("destination", ""), params.get("duration", 7))
-                return {"status": "success", "message": result}
-            elif action_name == "review_legal":
-                result = self.legal_reviewer.review_document(params.get("path", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "translate_text":
-                result = self.polyglot_bridge.translate_text(params.get("text", ""), params.get("lang", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "optimize_skill":
-                result = self.skill_optimizer.optimize_skill(params.get("name", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "route_task":
-                result = self.model_synthesizer.route_task(params.get("task", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "analyze_failure":
-                result = self.post_mortem.analyze_failure(params.get("tool", ""), params.get("error", ""))
-                return {"status": "success", "message": result}
-            elif action_name == "expand_knowledge":
-                result = self.expansion_loop.expand_knowledge()
-                return {"status": "success", "message": result}
-            # ... (other actions remain similar)
-            else:
-                # Fallback to generic tool execution if available
-                for tool in self.tools.values():
-                    if tool.name.lower() == action_name.lower():
-                        return tool.execute(**params)
-                return {"status": "error", "message": f"Unknown action: {action_name}"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    def _handle_subconscious_thought(self, thought: str):
-        """Handle a thought generated by the subconscious loop."""
-        print(f"Subconscious Thought: {thought}")
-        
-        # Record thought in dream journal
-        if random.random() < 0.2:
-            self.dream_journal.record_dream(thought)
-        
-        # Occasionally trigger a 'dream' or 'observation'
-        if random.random() < 0.1:
-            dream_insight = self.synapse_engine.dream()
-            if dream_insight:
-                self.dream_journal.record_dream(f"Dream Insight: {dream_insight}")
-        
-        if random.random() < 0.1:
-            observation = self.world_observer.observe()
-            if observation:
-                print(f"World Observation: {observation}")
-        
-        # Evolution-Engine background tasks
-        if random.random() < 0.05:
-            evolution = self.evolution_engine.evolve()
-            if evolution:
-                print(evolution)
-        
-        # Power Upgrades background tasks
-        if random.random() < 0.05:
-            refactor = self.auto_refactor.scan_for_optimizations()
-            if refactor:
-                print(refactor)
-        
-        if random.random() < 0.05:
-            market = self.market_pulse.scan_markets()
-            if "Insight" in market:
-                print(market)
-        
-        if random.random() < 0.1:
-            harmonize = self.system_harmonizer.harmonize_system()
-            print(harmonize)
-
-    def _handle_remote_message(self, message: str):
-        """Handle a message received via remote access (Telegram)."""
-        print(f"Remote Message: {message}")
 
     def _is_simple_query(self, text: str) -> bool:
         """Check if a query is simple enough for the fast-path (no thinking needed)."""
@@ -613,6 +322,7 @@ class Agent:
         # FAST-PATH: Instant response for simple queries
         if self._is_simple_query(user_message):
             yield {"type": "status", "text": "Responding..."}
+            # Use a very small prompt for speed
             response = self.brain.think(f"You are Timmy. Respond naturally and briefly to: {user_message}")
             yield {"type": "text_chunk", "text": response}
             self._save_to_db("assistant", response)
@@ -697,4 +407,4 @@ class Agent:
                 break
 
         if iteration >= max_iterations:
-            yield {"type": "text", "text": "I've hit my limit for this task. What should I do next?"}
+            yield {"type": "text_chunk", "text": "I've hit my limit for this task. What should I do next?"}

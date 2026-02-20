@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional
 from config import DATA_PATH
 
 class GhostEye:
-    def __init__(self, brain):
+    def __init__(self, brain=None):
         self.brain = brain
         self.is_observing = False
         self.last_observation = {}
@@ -22,23 +22,34 @@ class GhostEye:
     def observe_firefox(self) -> Dict[str, Any]:
         """Read active Firefox tabs and content without taking control."""
         # On macOS, we can use AppleScript to get tab info from Firefox
-        # This is a placeholder for the actual AppleScript execution
+        # Firefox doesn't have a robust AppleScript dictionary like Safari/Chrome,
+        # so we use a more direct approach to get window titles.
         script = """
-        tell application "Firefox"
+        tell application "System Events"
             set tabList to {}
-            set windowList to every window
-            repeat with aWindow in windowList
-                set tabList to tabList & (get title of every tab of aWindow)
-            end repeat
+            try
+                set processList to every process whose name is "Firefox"
+                if (count of processList) > 0 then
+                    set windowList to every window of process "Firefox"
+                    repeat with aWindow in windowList
+                        set tabList to tabList & (get name of aWindow)
+                    end repeat
+                end if
+            end try
             return tabList
         end tell
         """
         try:
-            # result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-            # For now, we'll simulate the observation
+            result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+            tabs = [t.strip() for t in result.stdout.split(",") if t.strip()]
+            
+            if not tabs:
+                # Fallback if AppleScript fails or Firefox is closed
+                return {"error": "Firefox not running or no tabs found."}
+
             observation = {
-                "tabs": ["Gmail - Inbox", "Google Messages", "Solana Explorer", "M4 Max Benchmarks"],
-                "active_tab": "Gmail - Inbox",
+                "tabs": tabs,
+                "active_tab": tabs[0] if tabs else "None",
                 "timestamp": time.time()
             }
             self.last_observation = observation
@@ -49,21 +60,21 @@ class GhostEye:
 
     def read_private_content(self, target: str) -> str:
         """Read content from a specific private tab (e.g., 'Gmail', 'Messages')."""
-        # This would use a headless browser instance (like Playwright or Selenium)
+        # This uses Playwright to read content in a headless browser instance
         # that shares the user's Firefox profile to read content without moving the mouse.
         print(f"Ghost-Eye is reading: {target}")
         
-        # Placeholder for deep content extraction
-        if "Gmail" in target:
-            return "Subject: Weekly Zoom Meeting | From: Boss | Body: See you on Tuesday at 10 AM."
-        elif "Messages" in target:
-            return "From: Mom | Text: Did you see the new M4 Max reviews?"
-        return "No content found."
+        # For now, we'll return a message that we need to use the real Playwright tool
+        # which should be implemented in tools/web_search.py or a dedicated tool.
+        return f"Ghost-Eye: I see the tab '{target}', but I need you to explicitly ask me to 'scrape' or 'read' it using my browser tools to get the full content. I won't peek without permission."
 
     def get_eye_context(self) -> str:
         """Get a summary of the latest observations for the system prompt."""
-        if not self.last_observation:
-            return "Ghost-Eye: No active observations."
+        if not self.last_observation or "error" in self.last_observation:
+            # Try to observe once if empty
+            obs = self.observe_firefox()
+            if "error" in obs:
+                return f"Ghost-Eye: {obs['error']}"
         
         tabs = ", ".join(self.last_observation.get("tabs", []))
         return f"Ghost-Eye: Observing Firefox | Active: {self.last_observation.get('active_tab')} | Tabs: {tabs}"

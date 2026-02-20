@@ -20,15 +20,18 @@ class EmailManager:
     def send_email(self, to: str, subject: str, body: str) -> Dict[str, Any]:
         """Send an email from Timmy's account."""
         # In a real setup, this would use smtplib with credentials
+        # For now, we'll be honest that we need the user to set up credentials.
         print(f"Timmy ({self.timmy_email}) sending email to {to}: {subject}")
-        return {"status": "success", "message": f"Email sent from {self.timmy_email} to {to}"}
+        return {"status": "error", "message": f"Email credentials for {self.timmy_email} are not yet configured in config.py. Please add your App Password to send emails."}
 
     def summarize_user_emails(self) -> str:
         """Summarize important emails from the user's connected accounts."""
         # Placeholder for actual IMAP/API logic
-        return "You have a few updates: a meeting invite for tomorrow and a shipping notification from Amazon."
+        # Honesty: We don't have IMAP access yet.
+        return "I don't have access to your inbox yet. Please provide your IMAP settings in config.py so I can summarize your emails for you."
 
     def check_for_important_updates(self) -> Optional[str]:
         """Proactively check for important emails to notify the user."""
         # This would be called by the subconscious loop
+        # Honesty: We don't have IMAP access yet.
         return None

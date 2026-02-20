@@ -2,12 +2,12 @@
     --bg-dark: #0a0a0c;
     --bg-sidebar: #121216;
     --bg-card: #1a1a20;
-    --accent-primary: #00f2ff;
-    --accent-secondary: #7000ff;
+    --accent-primary: #00d2ff; /* Changed from #00f2ff to a cleaner blue */
+    --accent-secondary: #3a7bd5; /* Changed from #7000ff to a cleaner blue */
     --text-main: #e0e0e6;
     --text-dim: #a0a0b0;
     --border-color: #2a2a35;
-    --shadow-glow: 0 0 15px rgba(0, 242, 255, 0.2);
+    --shadow-glow: 0 0 15px rgba(0, 210, 255, 0.2);
 }
 
 * {
@@ -62,9 +62,9 @@ body {
 }
 
 @keyframes pulse-animation {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 210, 255, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); }
 }
 
 .nav-links {
@@ -94,7 +94,7 @@ body {
 }
 
 .nav-links li.active {
-    background-color: rgba(0, 242, 255, 0.05);
+    background-color: rgba(0, 210, 255, 0.05);
     color: var(--accent-primary);
     border-left-color: var(--accent-primary);
 }
@@ -230,7 +230,7 @@ body {
 }
 
 #thinking-container {
-    background: rgba(0, 242, 255, 0.03);
+    background: rgba(0, 210, 255, 0.03);
     border: 1px dashed var(--accent-primary);
     border-radius: 8px;
     padding: 15px;
@@ -422,12 +422,12 @@ body {
 }
 
 .draft-card:hover {
-    background: rgba(112, 0, 255, 0.1);
+    background: rgba(58, 123, 213, 0.1);
 }
 
 #browser-preview {
     width: 100%;
     height: 100%;
-    background: url('https://via.placeholder.com/300x180/0a0a0c/00f2ff?text=GHOST-EYE+ACTIVE') center/cover;
+    background: url('https://via.placeholder.com/300x180/0a0a0c/00d2ff?text=GHOST-EYE+ACTIVE') center/cover;
     opacity: 0.5;
 }
